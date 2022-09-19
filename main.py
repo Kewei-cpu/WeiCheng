@@ -1,4 +1,3 @@
-import random
 import sys
 
 import numpy as np
@@ -46,16 +45,14 @@ class Cell:
         :param scr: 屏幕
         :return:
         """
-        # 画棋盘格
         pygame.draw.rect(
             surface=scr,
-            color=(0, 0, 0),
-            rect=(game.border_size + self.pos[1] * game.grid_size + game.padding_size // 2,
-                  game.border_size + self.pos[0] * game.grid_size + game.padding_size // 2,
-                  game.grid_size - game.padding_size,
-                  game.grid_size - game.padding_size),
-            width=3,
-            border_radius=10
+            color=(255, 255, 255),
+            rect=(game.border_size + self.pos[1] * game.grid_size + game.padding_size // 2 + 3,
+                  game.border_size + self.pos[0] * game.grid_size + game.padding_size // 2 + 3,
+                  game.grid_size - game.padding_size - 6,
+                  game.grid_size - game.padding_size - 6),
+            border_radius=0
         )
 
     def draw_wall(self, scr):
@@ -71,34 +68,34 @@ class Cell:
                 color=self.left.color,
                 points=((game.border_size + self.pos[1] * game.grid_size,
                          game.border_size + self.pos[0] * game.grid_size),
-                        (game.border_size + self.pos[1] * game.grid_size + game.padding_size // 2 - 1,
-                         game.border_size + self.pos[0] * game.grid_size + game.padding_size // 2),
-                        (game.border_size + self.pos[1] * game.grid_size + game.padding_size // 2 - 1,
-                         game.border_size + (self.pos[0] + 1) * game.grid_size - game.padding_size // 2),
+                        (game.border_size + self.pos[1] * game.grid_size + game.padding_size // 3,
+                         game.border_size + self.pos[0] * game.grid_size + game.padding_size // 3),
+                        (game.border_size + self.pos[1] * game.grid_size + game.padding_size // 3,
+                         game.border_size + (self.pos[0] + 1) * game.grid_size - game.padding_size // 3),
                         (game.border_size + self.pos[1] * game.grid_size,
                          game.border_size + (self.pos[0] + 1) * game.grid_size),
-                        (game.border_size + self.pos[1] * game.grid_size - game.padding_size // 2,
-                         game.border_size + (self.pos[0] + 1) * game.grid_size - game.padding_size // 2),
-                        (game.border_size + self.pos[1] * game.grid_size - game.padding_size // 2,
-                         game.border_size + self.pos[0] * game.grid_size + game.padding_size // 2),
-                        )
-            )
+                        (game.border_size + self.pos[1] * game.grid_size - game.padding_size // 3,
+                         game.border_size + (self.pos[0] + 1) * game.grid_size - game.padding_size // 3),
+                        (game.border_size + self.pos[1] * game.grid_size - game.padding_size // 3,
+                         game.border_size + self.pos[0] * game.grid_size + game.padding_size // 3),
+                        ))
+
         if self.pos[0] >= 1 and self.top:
             pygame.draw.polygon(
                 surface=scr,
                 color=self.top.color,
                 points=((game.border_size + self.pos[1] * game.grid_size,
                          game.border_size + self.pos[0] * game.grid_size),
-                        (game.border_size + self.pos[1] * game.grid_size + game.padding_size // 2,
-                         game.border_size + self.pos[0] * game.grid_size + game.padding_size // 2 - 1),
-                        (game.border_size + (self.pos[1] + 1) * game.grid_size - game.padding_size // 2,
-                         game.border_size + self.pos[0] * game.grid_size + game.padding_size // 2 - 1),
+                        (game.border_size + self.pos[1] * game.grid_size + game.padding_size // 3,
+                         game.border_size + self.pos[0] * game.grid_size + game.padding_size // 3),
+                        (game.border_size + (self.pos[1] + 1) * game.grid_size - game.padding_size // 3,
+                         game.border_size + self.pos[0] * game.grid_size + game.padding_size // 3),
                         (game.border_size + (self.pos[1] + 1) * game.grid_size,
                          game.border_size + self.pos[0] * game.grid_size),
-                        (game.border_size + (self.pos[1] + 1) * game.grid_size - game.padding_size // 2,
-                         game.border_size + self.pos[0] * game.grid_size - game.padding_size // 2),
-                        (game.border_size + self.pos[1] * game.grid_size + game.padding_size // 2,
-                         game.border_size + self.pos[0] * game.grid_size - game.padding_size // 2),
+                        (game.border_size + (self.pos[1] + 1) * game.grid_size - game.padding_size // 3,
+                         game.border_size + self.pos[0] * game.grid_size - game.padding_size // 3),
+                        (game.border_size + self.pos[1] * game.grid_size + game.padding_size // 3,
+                         game.border_size + self.pos[0] * game.grid_size - game.padding_size // 3),
                         )
             )
 
@@ -216,35 +213,82 @@ class Player:
         :param scr: 屏幕
         :return:
         """
-        cls.all_players[0].draw_available(scr)
-        for player in cls.all_players:
+        for i, player in enumerate(cls.all_players):
             player.draw(scr)
+            if game.player_flag == i:
+                player.draw_outline(scr)
+                if game.step_flag == 0:
+                    player.draw_available(scr)
+                    player.draw_preview(scr)
+                else:
+                    player.draw_wall_preview(scr)
+
+    def draw_preview(self, scr):
+        """
+        显示玩家可能的位置
+        :param scr:
+        :return:
+        """
+        if game.mouse_pos in self.available and game.mouse_pos != self.pos:
+            pygame.draw.circle(
+                surface=scr,
+                color=[255 - (255 - i) * 0.5 for i in self.color],
+                center=(game.border_size + (game.mouse_pos[1] + 0.5) * game.grid_size,
+                        game.border_size + (game.mouse_pos[0] + 0.5) * game.grid_size),
+                radius=game.grid_size * 0.3,
+            )
+
+    def draw_wall_preview(self, scr):
+        if pygame.mouse.get_pos()[0] < game.border_size + (self.pos[1] + 0.5) * game.grid_size and \
+                abs(pygame.mouse.get_pos()[1] - (game.border_size + (self.pos[0] + 0.5) * game.grid_size)) < \
+                abs(game.border_size + (self.pos[1] + 0.5) * game.grid_size - pygame.mouse.get_pos()[0]):
+            print('left')
+
+        elif pygame.mouse.get_pos()[1] < game.border_size + (self.pos[0] + 0.5) * game.grid_size and \
+                abs(pygame.mouse.get_pos()[0] - (game.border_size + (self.pos[1] + 0.5) * game.grid_size)) < \
+                abs(game.border_size + (self.pos[0] + 0.5) * game.grid_size - pygame.mouse.get_pos()[1]):
+            print('top')
+
+        elif pygame.mouse.get_pos()[0] > game.border_size + (self.pos[1] + 0.5) * game.grid_size and \
+                abs(pygame.mouse.get_pos()[1] - (game.border_size + (self.pos[0] + 0.5) * game.grid_size)) < \
+                abs(game.border_size + (self.pos[1] + 0.5) * game.grid_size - pygame.mouse.get_pos()[0]):
+            print('right')
+
+        elif pygame.mouse.get_pos()[1] > game.border_size + (self.pos[0] + 0.5) * game.grid_size and \
+                abs(pygame.mouse.get_pos()[0] - (game.border_size + (self.pos[1] + 0.5) * game.grid_size)) < \
+                abs(game.border_size + (self.pos[0] + 0.5) * game.grid_size - pygame.mouse.get_pos()[1]):
+            print('bottom')
+
+    def draw_outline(self, scr):
+        """
+        显示选中的玩家
+        :param scr: 屏幕
+        :return:
+        """
+        pygame.draw.circle(
+            surface=scr,
+            color=[color * 0.7 for color in self.color],
+            center=(game.border_size + (self.pos[1] + 0.5) * game.grid_size,
+                    game.border_size + (self.pos[0] + 0.5) * game.grid_size),
+            width=5,
+            radius=game.grid_size * 0.3,
+        )
 
     def draw_available(self, scr):
         """
         显示提示
         :param scr: 屏幕
-        :return:
-        """
+1        """
         for pos in self.available:
             pygame.draw.rect(
                 surface=scr,
-                color=[255 - (255 - i) * 0.5 for i in self.color],
-                rect=(game.border_size + pos[1] * game.grid_size + game.padding_size // 2 + 3,
-                      game.border_size + pos[0] * game.grid_size + game.padding_size // 2 + 3,
-                      game.grid_size * 0.3,
-                      game.grid_size * 0.3),
-                border_top_left_radius=7
-            )
-            pygame.draw.polygon(
-                surface=scr,
-                color=(255, 255, 255),
-                points=((game.border_size + (pos[1] + 0.3) * game.grid_size + game.padding_size // 2 + 3,
-                         game.border_size + (pos[0] + 0.3) * game.grid_size + game.padding_size // 2 + 3),
-                        (game.border_size + (pos[1]) * game.grid_size + game.padding_size // 2 + 3,
-                         game.border_size + (pos[0] + 0.3) * game.grid_size + game.padding_size // 2 + 3),
-                        (game.border_size + (pos[1] + 0.3) * game.grid_size + game.padding_size // 2 + 3,
-                         game.border_size + (pos[0]) * game.grid_size + game.padding_size // 2 + 3),)
+                color=[color * 0.7 for color in self.color],
+                rect=(game.border_size + pos[1] * game.grid_size + game.padding_size // 2,
+                      game.border_size + pos[0] * game.grid_size + game.padding_size // 2,
+                      game.grid_size - game.padding_size,
+                      game.grid_size - game.padding_size),
+                width=6,
+                border_radius=0
             )
 
     def draw(self, scr):
@@ -258,9 +302,15 @@ class Player:
             color=self.color,
             center=(game.border_size + (self.pos[1] + 0.5) * game.grid_size,
                     game.border_size + (self.pos[0] + 0.5) * game.grid_size),
-            width=0,
             radius=game.grid_size * 0.3,
         )
+
+    def move_to_mouse(self):
+        if game.mouse_pos in self.available:
+            Cell.all_cells_2d[self.pos].content = None
+            self.pos = game.mouse_pos
+            Cell.all_cells_2d[game.mouse_pos].content = self
+            return True
 
 
 class Game:
@@ -274,25 +324,86 @@ class Game:
         self.border_size = border_size
         self.grid_size = grid_size
         self.grid_num = grid_num
+        self.window_size = 0
         self.padding_size = padding_size
+        self.player_num = 0
+        self.player_flag = 0  # 玩家编号
+        self.step_flag = 0  # 0为移动，1为放置
+        self.mouse_pos = (0, 0)
 
-    @staticmethod
-    def event_handler():
+    def event_handler(self):
         events = pygame.event.get()
         for event in events:
             # 退出
             if event.type == QUIT:
                 pygame.display.quit()
                 sys.exit()
+            elif event.type == MOUSEBUTTONDOWN and event.button == 1:
+                if self.step_flag == 0:
+                    res = Player.all_players[self.player_flag].move_to_mouse()
+                    if res:
+                        self.next_step()
+                elif self.step_flag == 1:
+                    pass
+
+    def get_player_num(self):
+        self.player_num = len(Player.all_players)
+
+    def next_step(self):
+        if self.step_flag == 0:
+            self.step_flag += 1
+        elif self.player_flag < self.player_num - 1:
+            self.step_flag = 0
+            self.player_flag += 1
+        else:
+            self.step_flag = 0
+            self.player_flag = 0
+
+    def pos_2_grid(self, pos):
+        """
+        讲鼠标坐标转化为再网格中的位置
+        :param pos:
+        :return:
+        """
+        x = (pos[1] - self.border_size) // self.grid_size
+        y = (pos[0] - self.border_size) // self.grid_size
+        return x, y
+
+    def move_mouse_handler(self):
+        gd = self.pos_2_grid(pygame.mouse.get_pos())
+        if 0 <= gd[0] <= self.grid_num - 1 and 0 <= gd[1] <= self.grid_num - 1:
+            self.mouse_pos = gd
+
+    def draw_background(self, scr):
+        for i in range(self.window_size):
+            pygame.draw.line(
+                scr,
+                color=(round(173 - 29 * i / self.window_size, 0),
+                       round(124 + 13 * i / self.window_size, 0),
+                       round(170 + 1 * i / self.window_size, 0),),
+                start_pos=(0, i),
+                end_pos=(i, 0),
+                width=1,
+            )
+
+        for i in range(self.window_size):
+            pygame.draw.line(
+                scr,
+                color=(round(144 - 29 * i / self.window_size, 0),
+                       round(137 + 13 * i / self.window_size, 0),
+                       round(171 + 1 * i / self.window_size, 0),),
+                start_pos=(self.window_size - 1, i),
+                end_pos=(i, self.window_size - 1),
+                width=1,
+            )
 
     def init_screen(self):
         """
         初始化屏幕
         """
-        width = height = self.grid_num * self.grid_size + self.border_size * 2
-        screen = pygame.display.set_mode((width, height))
+        self.window_size = self.grid_num * self.grid_size + self.border_size * 2
+        screen = pygame.display.set_mode((self.window_size, self.window_size))
         ico = pygame.image.load('./resources/icon/xo.png')
-
         pygame.display.set_icon(ico)
         pygame.display.set_caption('围城')
         return screen
@@ -301,25 +412,21 @@ class Game:
         pygame.init()
         screen = self.init_screen()
         Cell.init_grid(self.grid_num, self.grid_num)
-        Wall((1, 1), 0, [random.randint(0, 255) for i in range(3)])
-        Wall((2, 1), 0, [random.randint(0, 255) for i in range(3)])
-        Wall((1, 2), 0, [random.randint(0, 255) for i in range(3)])
-        Wall((1, 1), 3, [random.randint(0, 255) for i in range(3)])
-        Wall((2, 1), 3, [random.randint(0, 255) for i in range(3)])
-        Wall((1, 2), 3, [random.randint(0, 255) for i in range(3)])
-        Player((1, 3), (34, 232, 193), 'acb')
-        Player((1, 2), (34, 32, 193), 'acb')
-        Player((0, 3), (244, 232, 193), 'acb')
-        Player.refresh_available()
+        Player((1, 3), (130, 175, 214))
+        Player((1, 2), (192, 141, 117))
+        Player((0, 4), (80, 181, 142))
+        game.get_player_num()
 
         while True:
             self.event_handler()
-            screen.fill((255, 255, 255))
+            self.move_mouse_handler()
+            Player.refresh_available()
+            self.draw_background(screen)
             Cell.display(screen)
             Player.display(screen)
             pygame.display.update()
 
 
 if __name__ == '__main__':
-    game = Game(7, 100, 50, 10)
+    game = Game(7, 100, 50, 20)
     game.main()
