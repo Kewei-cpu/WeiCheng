@@ -64,9 +64,11 @@ class Cell:
         """
         if self.pos[1] >= 1 and self.left:
             Player.draw_left_wall(scr, self.left.color, self.pos[0], self.pos[1])
+            Player.draw_left_wall(scr, [color * 0.5 for color in self.left.color], self.pos[0], self.pos[1], width=3)
 
         if self.pos[0] >= 1 and self.top:
             Player.draw_top_wall(scr, self.top.color, self.pos[0], self.pos[1])
+            Player.draw_top_wall(scr, [color * 0.5 for color in self.top.color], self.pos[0], self.pos[1], width=3)
 
     @classmethod
     def init_grid(cls, width, height):
@@ -307,8 +309,7 @@ class Player:
                 abs(pygame.mouse.get_pos()[1] - (game.border_size + (self.pos[0] + 0.5) * game.grid_size)) < \
                 abs(game.border_size + (self.pos[1] + 0.5) * game.grid_size - pygame.mouse.get_pos()[0]) and \
                 Cell.all_cells_2d[self.pos].left is None and self.pos[1] > 0:
-            self.draw_left_wall(scr, self.color, self.pos[0], self.pos[1])
-            self.draw_left_wall(scr, [color * 0.7 for color in self.color], self.pos[0], self.pos[1], width=5)
+            self.draw_left_wall(scr, [255 - (255 - i) * 0.5 for i in self.color], self.pos[0], self.pos[1])
             game.mouse_wall_pos = 0
 
 
@@ -316,24 +317,21 @@ class Player:
                 abs(pygame.mouse.get_pos()[0] - (game.border_size + (self.pos[1] + 0.5) * game.grid_size)) < \
                 abs(game.border_size + (self.pos[0] + 0.5) * game.grid_size - pygame.mouse.get_pos()[1]) and \
                 Cell.all_cells_2d[self.pos].top is None and self.pos[0] > 0:
-            self.draw_top_wall(scr, self.color, self.pos[0], self.pos[1])
-            self.draw_top_wall(scr, [color * 0.7 for color in self.color], self.pos[0], self.pos[1], width=5)
+            self.draw_top_wall(scr, [255 - (255 - i) * 0.5 for i in self.color], self.pos[0], self.pos[1])
             game.mouse_wall_pos = 1
 
         elif pygame.mouse.get_pos()[0] > game.border_size + (self.pos[1] + 0.5) * game.grid_size and \
                 abs(pygame.mouse.get_pos()[1] - (game.border_size + (self.pos[0] + 0.5) * game.grid_size)) < \
                 abs(game.border_size + (self.pos[1] + 0.5) * game.grid_size - pygame.mouse.get_pos()[0]) and \
                 Cell.all_cells_2d[self.pos].right is None and self.pos[1] < game.grid_num - 1:
-            self.draw_left_wall(scr, self.color, self.pos[0], self.pos[1] + 1)
-            self.draw_left_wall(scr, [color * 0.7 for color in self.color], self.pos[0], self.pos[1] + 1, width=5)
+            self.draw_left_wall(scr, [255 - (255 - i) * 0.5 for i in self.color], self.pos[0], self.pos[1] + 1)
             game.mouse_wall_pos = 2
 
         elif pygame.mouse.get_pos()[1] > game.border_size + (self.pos[0] + 0.5) * game.grid_size and \
                 abs(pygame.mouse.get_pos()[0] - (game.border_size + (self.pos[1] + 0.5) * game.grid_size)) < \
                 abs(game.border_size + (self.pos[0] + 0.5) * game.grid_size - pygame.mouse.get_pos()[1]) and \
                 Cell.all_cells_2d[self.pos].bottom is None and self.pos[0] < game.grid_num - 1:
-            self.draw_top_wall(scr, self.color, self.pos[0] + 1, self.pos[1])
-            self.draw_top_wall(scr, [color * 0.7 for color in self.color], self.pos[0] + 1, self.pos[1], width=5)
+            self.draw_top_wall(scr, [255 - (255 - i) * 0.5 for i in self.color], self.pos[0] + 1, self.pos[1])
             game.mouse_wall_pos = 3
 
     def draw_outline(self, scr):
@@ -359,7 +357,7 @@ class Player:
         for pos in self.available:
             pygame.draw.rect(
                 surface=scr,
-                color=[color * 0.7 for color in self.color],
+                color=[color * 1 for color in self.color],
                 rect=(game.border_size + pos[1] * game.grid_size + game.padding_size // 2,
                       game.border_size + pos[0] * game.grid_size + game.padding_size // 2,
                       game.grid_size - game.padding_size,
@@ -387,7 +385,7 @@ class Player:
             if i:
                 pygame.draw.rect(
                     surface=scr,
-                    color=[255 - (255 - i) * 0.5 for i in self.color],
+                    color=[255 - (255 - i) * 0.2 for i in self.color],
                     rect=(game.border_size + pos[1] * game.grid_size + game.padding_size // 2 + 3,
                           game.border_size + pos[0] * game.grid_size + game.padding_size // 2 + 3,
                           game.grid_size - game.padding_size - 6,
@@ -408,6 +406,7 @@ class Player:
             center=(game.border_size + (self.pos[1] + 0.5) * game.grid_size,
                     game.border_size + (self.pos[0] + 0.5) * game.grid_size),
             radius=game.grid_size * 0.3,
+            width=5
         )
 
     def move_to_mouse(self):
@@ -424,7 +423,7 @@ class Player:
             1] < game.grid_num - 1 or \
                 game.mouse_wall_pos == 3 and Cell.all_cells_2d[self.pos].bottom is None and self.pos[
             0] < game.grid_num - 1:
-            Wall(self.pos, game.mouse_wall_pos, [color * 0.7 for color in self.color])
+            Wall(self.pos, game.mouse_wall_pos, [255 - (255 - i) * 0.5 for i in self.color])
             Player.test_end()
             return True
 
