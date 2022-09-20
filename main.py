@@ -63,41 +63,10 @@ class Cell:
         :return:
         """
         if self.pos[1] >= 1 and self.left:
-            pygame.draw.polygon(
-                surface=scr,
-                color=self.left.color,
-                points=((game.border_size + self.pos[1] * game.grid_size,
-                         game.border_size + self.pos[0] * game.grid_size),
-                        (game.border_size + self.pos[1] * game.grid_size + game.padding_size // 3,
-                         game.border_size + self.pos[0] * game.grid_size + game.padding_size // 3),
-                        (game.border_size + self.pos[1] * game.grid_size + game.padding_size // 3,
-                         game.border_size + (self.pos[0] + 1) * game.grid_size - game.padding_size // 3),
-                        (game.border_size + self.pos[1] * game.grid_size,
-                         game.border_size + (self.pos[0] + 1) * game.grid_size),
-                        (game.border_size + self.pos[1] * game.grid_size - game.padding_size // 3,
-                         game.border_size + (self.pos[0] + 1) * game.grid_size - game.padding_size // 3),
-                        (game.border_size + self.pos[1] * game.grid_size - game.padding_size // 3,
-                         game.border_size + self.pos[0] * game.grid_size + game.padding_size // 3),
-                        ))
+            Player.draw_left_wall(scr, self.left.color, self.pos[0], self.pos[1])
 
         if self.pos[0] >= 1 and self.top:
-            pygame.draw.polygon(
-                surface=scr,
-                color=self.top.color,
-                points=((game.border_size + self.pos[1] * game.grid_size,
-                         game.border_size + self.pos[0] * game.grid_size),
-                        (game.border_size + self.pos[1] * game.grid_size + game.padding_size // 3,
-                         game.border_size + self.pos[0] * game.grid_size + game.padding_size // 3),
-                        (game.border_size + (self.pos[1] + 1) * game.grid_size - game.padding_size // 3,
-                         game.border_size + self.pos[0] * game.grid_size + game.padding_size // 3),
-                        (game.border_size + (self.pos[1] + 1) * game.grid_size,
-                         game.border_size + self.pos[0] * game.grid_size),
-                        (game.border_size + (self.pos[1] + 1) * game.grid_size - game.padding_size // 3,
-                         game.border_size + self.pos[0] * game.grid_size - game.padding_size // 3),
-                        (game.border_size + self.pos[1] * game.grid_size + game.padding_size // 3,
-                         game.border_size + self.pos[0] * game.grid_size - game.padding_size // 3),
-                        )
-            )
+            Player.draw_top_wall(scr, self.top.color, self.pos[0], self.pos[1])
 
     @classmethod
     def init_grid(cls, width, height):
@@ -238,26 +207,85 @@ class Player:
                 radius=game.grid_size * 0.3,
             )
 
+    @staticmethod
+    def draw_left_wall(scr, color, pos_x, pos_y, width=0):
+        pygame.draw.polygon(
+            surface=scr,
+            color=color,
+            points=((game.border_size + pos_y * game.grid_size,
+                     game.border_size + pos_x * game.grid_size),
+                    (game.border_size + pos_y * game.grid_size + game.padding_size // 3,
+                     game.border_size + pos_x * game.grid_size + game.padding_size // 3),
+                    (game.border_size + pos_y * game.grid_size + game.padding_size // 3,
+                     game.border_size + (pos_x + 1) * game.grid_size - game.padding_size // 3),
+                    (game.border_size + pos_y * game.grid_size,
+                     game.border_size + (pos_x + 1) * game.grid_size),
+                    (game.border_size + pos_y * game.grid_size - game.padding_size // 3,
+                     game.border_size + (pos_x + 1) * game.grid_size - game.padding_size // 3),
+                    (game.border_size + pos_y * game.grid_size - game.padding_size // 3,
+                     game.border_size + pos_x * game.grid_size + game.padding_size // 3),
+                    ),
+            width=width)
+
+    @staticmethod
+    def draw_top_wall(scr, color, pos_x, pos_y, width=0):
+        pygame.draw.polygon(
+            surface=scr,
+            color=color,
+            points=((game.border_size + pos_y * game.grid_size,
+                     game.border_size + pos_x * game.grid_size),
+                    (game.border_size + pos_y * game.grid_size + game.padding_size // 3,
+                     game.border_size + pos_x * game.grid_size + game.padding_size // 3),
+                    (game.border_size + (pos_y + 1) * game.grid_size - game.padding_size // 3,
+                     game.border_size + pos_x * game.grid_size + game.padding_size // 3),
+                    (game.border_size + (pos_y + 1) * game.grid_size,
+                     game.border_size + pos_x * game.grid_size),
+                    (game.border_size + (pos_y + 1) * game.grid_size - game.padding_size // 3,
+                     game.border_size + pos_x * game.grid_size - game.padding_size // 3),
+                    (game.border_size + pos_y * game.grid_size + game.padding_size // 3,
+                     game.border_size + pos_x * game.grid_size - game.padding_size // 3),
+                    ),
+            width=width
+        )
+
     def draw_wall_preview(self, scr):
+        """
+        0=left 1=top 2=right 3=bottom
+        :param scr:
+        :return:
+        """
         if pygame.mouse.get_pos()[0] < game.border_size + (self.pos[1] + 0.5) * game.grid_size and \
                 abs(pygame.mouse.get_pos()[1] - (game.border_size + (self.pos[0] + 0.5) * game.grid_size)) < \
-                abs(game.border_size + (self.pos[1] + 0.5) * game.grid_size - pygame.mouse.get_pos()[0]):
-            print('left')
+                abs(game.border_size + (self.pos[1] + 0.5) * game.grid_size - pygame.mouse.get_pos()[0]) and \
+                Cell.all_cells_2d[self.pos].left is None and self.pos[1] > 0:
+            self.draw_left_wall(scr, self.color, self.pos[0], self.pos[1])
+            self.draw_left_wall(scr, [color * 0.7 for color in self.color], self.pos[0], self.pos[1], width=5)
+            game.mouse_wall_pos = 0
+
 
         elif pygame.mouse.get_pos()[1] < game.border_size + (self.pos[0] + 0.5) * game.grid_size and \
                 abs(pygame.mouse.get_pos()[0] - (game.border_size + (self.pos[1] + 0.5) * game.grid_size)) < \
-                abs(game.border_size + (self.pos[0] + 0.5) * game.grid_size - pygame.mouse.get_pos()[1]):
-            print('top')
+                abs(game.border_size + (self.pos[0] + 0.5) * game.grid_size - pygame.mouse.get_pos()[1]) and \
+                Cell.all_cells_2d[self.pos].top is None and self.pos[0] > 0:
+            self.draw_top_wall(scr, self.color, self.pos[0], self.pos[1])
+            self.draw_top_wall(scr, [color * 0.7 for color in self.color], self.pos[0], self.pos[1], width=5)
+            game.mouse_wall_pos = 1
 
         elif pygame.mouse.get_pos()[0] > game.border_size + (self.pos[1] + 0.5) * game.grid_size and \
                 abs(pygame.mouse.get_pos()[1] - (game.border_size + (self.pos[0] + 0.5) * game.grid_size)) < \
-                abs(game.border_size + (self.pos[1] + 0.5) * game.grid_size - pygame.mouse.get_pos()[0]):
-            print('right')
+                abs(game.border_size + (self.pos[1] + 0.5) * game.grid_size - pygame.mouse.get_pos()[0]) and \
+                Cell.all_cells_2d[self.pos].right is None and self.pos[1] < game.grid_num - 1:
+            self.draw_left_wall(scr, self.color, self.pos[0], self.pos[1] + 1)
+            self.draw_left_wall(scr, [color * 0.7 for color in self.color], self.pos[0], self.pos[1] + 1, width=5)
+            game.mouse_wall_pos = 2
 
         elif pygame.mouse.get_pos()[1] > game.border_size + (self.pos[0] + 0.5) * game.grid_size and \
                 abs(pygame.mouse.get_pos()[0] - (game.border_size + (self.pos[1] + 0.5) * game.grid_size)) < \
-                abs(game.border_size + (self.pos[0] + 0.5) * game.grid_size - pygame.mouse.get_pos()[1]):
-            print('bottom')
+                abs(game.border_size + (self.pos[0] + 0.5) * game.grid_size - pygame.mouse.get_pos()[1]) and \
+                Cell.all_cells_2d[self.pos].bottom is None and self.pos[0] < game.grid_num - 1:
+            self.draw_top_wall(scr, self.color, self.pos[0] + 1, self.pos[1])
+            self.draw_top_wall(scr, [color * 0.7 for color in self.color], self.pos[0] + 1, self.pos[1], width=5)
+            game.mouse_wall_pos = 3
 
     def draw_outline(self, scr):
         """
@@ -312,6 +340,16 @@ class Player:
             Cell.all_cells_2d[game.mouse_pos].content = self
             return True
 
+    def place_at_mouse(self):
+        if game.mouse_wall_pos == 0 and Cell.all_cells_2d[self.pos].left is None and self.pos[1] > 0 or \
+                game.mouse_wall_pos == 1 and Cell.all_cells_2d[self.pos].top is None and self.pos[0] > 0 or \
+                game.mouse_wall_pos == 2 and Cell.all_cells_2d[self.pos].right is None and self.pos[
+            1] < game.grid_num - 1 or \
+                game.mouse_wall_pos == 3 and Cell.all_cells_2d[self.pos].bottom is None and self.pos[
+            0] < game.grid_num - 1:
+            Wall(self.pos, game.mouse_wall_pos, [color * 0.7 for color in self.color])
+            return True
+
 
 class Game:
     def __init__(self, grid_num, grid_size, border_size, padding_size):
@@ -330,6 +368,7 @@ class Game:
         self.player_flag = 0  # 玩家编号
         self.step_flag = 0  # 0为移动，1为放置
         self.mouse_pos = (0, 0)
+        self.mouse_wall_pos = 0
 
     def event_handler(self):
         events = pygame.event.get()
@@ -344,7 +383,9 @@ class Game:
                     if res:
                         self.next_step()
                 elif self.step_flag == 1:
-                    pass
+                    res = Player.all_players[self.player_flag].place_at_mouse()
+                    if res:
+                        self.next_step()
 
     def get_player_num(self):
         self.player_num = len(Player.all_players)
@@ -412,9 +453,9 @@ class Game:
         pygame.init()
         screen = self.init_screen()
         Cell.init_grid(self.grid_num, self.grid_num)
-        Player((1, 3), (130, 175, 214))
-        Player((1, 2), (192, 141, 117))
-        Player((0, 4), (80, 181, 142))
+        Player((0, 0), (130, 175, 214))
+        # Player((1, 2), (192, 141, 117))
+        Player((6, 6), (80, 181, 142))
         game.get_player_num()
 
         while True:
