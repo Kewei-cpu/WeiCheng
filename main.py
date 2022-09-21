@@ -1,3 +1,4 @@
+import random
 import sys
 
 import numpy as np
@@ -35,7 +36,7 @@ class Cell:
         :return:
         """
 
-        for cell in cls.all_cells:
+        for i, cell in np.ndenumerate(cls.all_cells_2d):
             cell.draw(scr)
             cell.draw_wall(scr)
 
@@ -85,40 +86,49 @@ class Cell:
                 Cell((i, j))
 
     @classmethod
-    def bfs(cls, pos, step=3, ignore_player=False):
+    def bfs(cls, pos, board, step=3, ignore_player=False, return_num=False):
         """
         广度优先搜索，考虑墙，可以添加步数限制
+        :param board:
+        :param return_num: 是否返回步数列表
         :param ignore_player: 是否忽略玩家
         :param step:步数限制
         :param pos:
         :return:
         """
-        visited = np.zeros_like(Cell.all_cells_2d) > 0
+        visited = np.zeros_like(board) > 0
+        length = np.zeros_like(board)
         queue = [(pos, 1)]
         visited[pos] = True
         while queue:
             s = queue.pop(0)
             if s[1] <= step:  # 步数限制
-                if s[0][1] >= 1 and not Cell.all_cells_2d[s[0]].left and \
-                        (not Cell.all_cells_2d[s[0][0], s[0][1] - 1].content or ignore_player):
+                if s[0][1] >= 1 and not board[s[0]].left and \
+                        (not board[s[0][0], s[0][1] - 1].content or ignore_player):
                     if not visited[s[0][0], s[0][1] - 1]:
                         queue.append(((s[0][0], s[0][1] - 1), s[1] + 1))
                         visited[s[0][0], s[0][1] - 1] = True
-                if s[0][0] >= 1 and not Cell.all_cells_2d[s[0]].top and \
-                        (not Cell.all_cells_2d[s[0][0] - 1, s[0][1]].content or ignore_player):
+                        length[s[0][0], s[0][1] - 1] = s[1]
+                if s[0][0] >= 1 and not board[s[0]].top and \
+                        (not board[s[0][0] - 1, s[0][1]].content or ignore_player):
                     if not visited[s[0][0] - 1, s[0][1]]:
                         queue.append(((s[0][0] - 1, s[0][1]), s[1] + 1))
                         visited[s[0][0] - 1, s[0][1]] = True
-                if s[0][1] <= game.grid_num - 2 and not Cell.all_cells_2d[s[0]].right and \
-                        (not Cell.all_cells_2d[s[0][0], s[0][1] + 1].content or ignore_player):
+                        length[s[0][0] - 1, s[0][1]] = s[1]
+                if s[0][1] <= game.grid_num - 2 and not board[s[0]].right and \
+                        (not board[s[0][0], s[0][1] + 1].content or ignore_player):
                     if not visited[s[0][0], s[0][1] + 1]:
                         queue.append(((s[0][0], s[0][1] + 1), s[1] + 1))
                         visited[s[0][0], s[0][1] + 1] = True
-                if s[0][0] <= game.grid_num - 2 and not Cell.all_cells_2d[s[0]].bottom and \
-                        (not Cell.all_cells_2d[s[0][0] + 1, s[0][1]].content or ignore_player):
+                        length[s[0][0], s[0][1] + 1] = s[1]
+                if s[0][0] <= game.grid_num - 2 and not board[s[0]].bottom and \
+                        (not board[s[0][0] + 1, s[0][1]].content or ignore_player):
                     if not visited[s[0][0] + 1, s[0][1]]:
                         queue.append(((s[0][0] + 1, s[0][1]), s[1] + 1))
                         visited[s[0][0] + 1, s[0][1]] = True
+                        length[s[0][0] + 1, s[0][1]] = s[1]
+        if return_num:
+            return length
         return visited
 
     @classmethod
@@ -166,14 +176,16 @@ class Cell:
 class Wall:
     all_walls = []
 
-    def __init__(self, pos, location, color):
+    def __init__(self, pos, location, color=(128, 128, 128)):
         """
         向期盼边界添加墙会报错
         :param pos:
         :param location: 0=left 1=top 2=right 3=bottom
         :param color: 颜色
         """
+        self.pos = pos
         self.color = color
+        self.location = location
         if location == 0:
             Cell.all_cells_2d[pos].left = self
             Cell.all_cells_2d[pos[0], pos[1] - 1].right = self
@@ -187,6 +199,22 @@ class Wall:
             Cell.all_cells_2d[pos].bottom = self
             Cell.all_cells_2d[pos[0] + 1, pos[1]].top = self
         self.all_walls.append(self)
+
+    def __del__(self):
+        if self.location == 0:
+            Cell.all_cells_2d[self.pos].left = None
+            Cell.all_cells_2d[self.pos[0], self.pos[1] - 1].right = None
+        elif self.location == 1:
+            Cell.all_cells_2d[self.pos].top = None
+            Cell.all_cells_2d[self.pos[0] - 1, self.pos[1]].bottom = None
+        elif self.location == 2:
+            Cell.all_cells_2d[self.pos].right = None
+            Cell.all_cells_2d[self.pos[0], self.pos[1] + 1].left = None
+        elif self.location == 3:
+            Cell.all_cells_2d[self.pos].bottom = None
+            Cell.all_cells_2d[self.pos[0] + 1, self.pos[1]].top = None
+        if self in self.all_walls:
+            self.all_walls.remove(self)
 
 
 class Player:
@@ -203,6 +231,7 @@ class Player:
         self.color = color
         self.name = name
         self.available = []
+        self.territory = None
         self.isolated = False
 
         # 将玩家添加到网格中
@@ -214,9 +243,14 @@ class Player:
         for player in cls.all_players:
             player.get_available()
 
+    @classmethod
+    def refresh_territory(cls):
+        for player in cls.all_players:
+            player.territory = Cell.bfs(player.pos, Cell.all_cells_2d, step=100, ignore_player=True, return_num=True)
+
     def get_available(self):
         self.available = []
-        for pos, i in np.ndenumerate(Cell.bfs(self.pos)):
+        for pos, i in np.ndenumerate(Cell.bfs(self.pos, Cell.all_cells_2d)):
             if i:
                 self.available.append(pos)
 
@@ -229,19 +263,38 @@ class Player:
         """
         for i, player in enumerate(cls.all_players):
             if not player.isolated:
+                # player.draw_territory(scr)
                 player.draw(scr)
-                if game.player_flag == i:
-                    player.draw_outline(scr)
-                    if game.step_flag == 0:
-                        player.draw_available(scr)
-                        player.draw_preview(scr)
-                    else:
-                        player.draw_wall_preview(scr)
             else:
-                player.draw_end(scr, Cell.bfs(player.pos, 100))
+                player.draw_end(scr, Cell.bfs(player.pos, Cell.all_cells_2d, 100))
                 player.draw_dead(scr)
                 if game.player_flag == i:
                     game.next_player()
+        for i, player in enumerate(cls.all_players):
+            if game.player_flag == i:
+                player.draw_outline(scr)
+                if game.step_flag == 0:
+                    player.draw_available(scr)
+                    player.draw_preview(scr)
+                else:
+                    player.draw_wall_preview(scr)
+
+    def draw_territory(self, scr):
+        for pos, i in np.ndenumerate(self.territory):
+            terr = True
+            for player in self.all_players:
+                if player is not self and player.territory[pos] <= i:
+                    terr = False
+            if terr:
+                pygame.draw.rect(
+                    surface=scr,
+                    color=[255 - (255 - i) * 0.4 for i in self.color],
+                    rect=(game.border_size + pos[1] * game.grid_size + game.padding_size // 2 + 3,
+                          game.border_size + pos[0] * game.grid_size + game.padding_size // 2 + 3,
+                          game.grid_size - game.padding_size - 6,
+                          game.grid_size - game.padding_size - 6),
+                    width=10
+                )
 
     def draw_preview(self, scr):
         """
@@ -381,18 +434,16 @@ class Player:
         )
 
     def draw_end(self, scr, can_go):
-        for pos,i in np.ndenumerate(can_go):
+        for pos, i in np.ndenumerate(can_go):
             if i:
                 pygame.draw.rect(
                     surface=scr,
-                    color=[255 - (255 - i) * 0.2 for i in self.color],
+                    color=[255 - (255 - i) * 0.4 for i in self.color],
                     rect=(game.border_size + pos[1] * game.grid_size + game.padding_size // 2 + 3,
                           game.border_size + pos[0] * game.grid_size + game.padding_size // 2 + 3,
                           game.grid_size - game.padding_size - 6,
                           game.grid_size - game.padding_size - 6),
                 )
-
-
 
     def draw_dead(self, scr):
         """
@@ -424,32 +475,60 @@ class Player:
                 game.mouse_wall_pos == 3 and Cell.all_cells_2d[self.pos].bottom is None and self.pos[
             0] < game.grid_num - 1:
             Wall(self.pos, game.mouse_wall_pos, [255 - (255 - i) * 0.5 for i in self.color])
-            Player.test_end()
+            game.test_end()
             return True
 
-    @classmethod
-    def test_end(cls):
-        for player in cls.all_players:
-            isolated = Cell.is_isolated(player.pos, step=100)
-            if isolated and not player.isolated:
-                print(f'{player.name} Dies!')
-                player.isolated = True
-                all_die = True
-                for player_ in cls.all_players:
-                    if player_.isolated is False:
-                        all_die = False
-                if all_die:
-                    cls.score_calculator()
+    def max_territory_strategy(self):
+        """
+        单步最优化策略
+        :return:
+        """
+        choices = []
+        for pos in self.available:  # 遍历每一个个能位置
+            new_board = Cell.all_cells_2d.copy()
+            new_board[self.pos].content = None
+            new_board[pos].content = self
+            for loc in range(4):
+                # 检测边缘
+                if pos[0] == 0 and loc == 1 or pos[1] == 0 and loc == 0 or \
+                        pos[0] == game.grid_num - 1 and loc == 3 or pos[1] == game.grid_num - 1 and loc == 2:
+                    continue
 
-    @classmethod
-    def score_calculator(cls):
-        print('=' * 20)
-        print('GAME   OVER')
-        print('=' * 20)
-        print('NAME   SCORE')
-        for player in cls.all_players:
-            score = np.sum(Cell.bfs(player.pos, 100) == True)
-            print(player.name, score, sep='     ')
+                # 已有墙的位置
+                if loc == 0 and Cell.all_cells_2d[pos].left or loc == 1 and Cell.all_cells_2d[pos].top or \
+                        loc == 2 and Cell.all_cells_2d[pos].right or loc == 3 and Cell.all_cells_2d[pos].bottom:
+                    continue
+
+                a = Wall(pos, loc)
+                # 移动放置后进行模拟
+                terr = Cell.bfs(pos, new_board, step=100, ignore_player=True, return_num=True)
+                a.__del__()
+                new_board[pos].content = None
+                new_board[self.pos].content = self
+
+                # 计算当前领地大小
+                terr_num = 0
+                for pos_go, i in np.ndenumerate(terr):
+                    is_my_terr = True
+                    for player in self.all_players:
+                        if player is not self and i >= player.territory[pos_go] > 0 or i <= 0:
+                            is_my_terr = False
+                    if is_my_terr:
+                        terr_num += 1
+                choices.append((pos, loc, terr_num))
+
+        # 选择领地最大的行动
+        max_terr = 0
+        for pos, loc, terr in choices:
+            if terr > max_terr:
+                max_terr = terr
+        max_terr_choices = []
+        for pos, loc, terr in choices:
+            if terr >= max_terr - 1:
+                max_terr_choices.append((pos, loc))
+        print(max_terr, max_terr_choices)
+        if max_terr_choices:
+            return random.choice(max_terr_choices)
 
 
 class Game:
@@ -470,6 +549,7 @@ class Game:
         self.step_flag = 0  # 0为移动，1为放置
         self.mouse_pos = (0, 0)
         self.mouse_wall_pos = 0
+        self.running = True
 
     def event_handler(self):
         events = pygame.event.get()
@@ -479,17 +559,61 @@ class Game:
                 pygame.display.quit()
                 sys.exit()
             elif event.type == MOUSEBUTTONDOWN and event.button == 1:
-                if self.step_flag == 0:
-                    res = Player.all_players[self.player_flag].move_to_mouse()
-                    if res:
-                        self.next_step()
-                elif self.step_flag == 1:
-                    res = Player.all_players[self.player_flag].place_at_mouse()
-                    if res:
-                        self.next_step()
+                if self.running:
+                    if self.step_flag == 0:
+                        res = Player.all_players[self.player_flag].move_to_mouse()
+                        if res:
+                            self.next_step()
+                    elif self.step_flag == 1:
+                        res = Player.all_players[self.player_flag].place_at_mouse()
+                        if res:
+                            self.next_step()
 
     def get_player_num(self):
         self.player_num = len(Player.all_players)
+
+    def test_end(self):
+        """
+        判断游戏是否结束
+        :return:
+        """
+        for player in Player.all_players:
+            isolated = Cell.is_isolated(player.pos, step=100)
+            if isolated and not player.isolated:
+                print(f'{player.name} Dies!')
+                player.isolated = True
+                all_die = True
+                for player_ in Player.all_players:
+                    if player_.isolated is False:
+                        all_die = False
+                if all_die:
+                    self.running = False
+                    self.score_calculator()
+
+    def score_calculator(self):
+        """
+        结算
+        :return:
+        """
+        print('=' * 20)
+        print('GAME\t\tOVER')
+        print('=' * 20)
+        print('NAME\t\tSCORE')
+        # 计算每个玩家的占地面积
+        for player in Player.all_players:
+            score = np.sum(Cell.bfs(player.pos, Cell.all_cells_2d, step=100))
+            print(player.name, score, sep='\t\t\t')
+
+    def robot_handler(self):
+        if 'Robot' in Player.all_players[self.player_flag].name:
+            if self.running:
+                act = Player.all_players[self.player_flag].max_territory_strategy()
+                Cell.all_cells_2d[Player.all_players[self.player_flag].pos].content = None
+                Player.all_players[self.player_flag].pos = act[0]
+                Cell.all_cells_2d[act[0]].content = Player.all_players[self.player_flag]
+                Wall(act[0], act[1], Player.all_players[self.player_flag].color)
+                self.test_end()
+                self.next_player()
 
     def next_step(self):
         if self.step_flag == 0:
@@ -561,16 +685,18 @@ class Game:
         pygame.init()
         screen = self.init_screen()
         Cell.init_grid(self.grid_num, self.grid_num)
-        Player((0, 0), (130, 175, 214), 'Blue')
-        # Player((0, 6), (192, 141, 117), 'Brown')
-        # Player((6, 0), (207, 155, 176), 'Pink')
-        Player((6, 6), (80, 181, 142), 'Green')
+        Player((0, 0), (130, 175, 214), 'Blue Robot')
+        Player((0, 6), (192, 141, 117), 'Brown Robot')
+        Player((6, 0), (207, 155, 176), 'Pink Robot')
+        Player((6, 6), (80, 181, 142), 'Green Robot')
         game.get_player_num()
 
         while True:
+            Player.refresh_available()
+            Player.refresh_territory()
+            self.robot_handler()
             self.event_handler()
             self.move_mouse_handler()
-            Player.refresh_available()
             self.draw_background(screen)
             Cell.display(screen)
             Player.display(screen)
