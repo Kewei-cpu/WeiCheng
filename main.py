@@ -264,7 +264,7 @@ class Player:
         """
         for i, player in enumerate(cls.all_players):
             if not player.isolated:
-                # player.draw_territory(scr)
+                player.draw_territory(scr)
                 player.draw(scr)
             else:
                 player.draw_end(scr, Cell.bfs(player.pos, Cell.all_cells_2d, 100))
@@ -490,6 +490,13 @@ class Player:
         """
         choices = []
         for pos in self.available:  # 遍历每一个个能位置
+            if (abs(pos[0] - self.pos[0]) + abs(pos[1] - self.pos[1])) < 2:
+                # continue
+                pass
+            if int(Cell.all_cells_2d[pos].left is not None) + int(Cell.all_cells_2d[pos].top is not None) + \
+                    int(Cell.all_cells_2d[pos].right is not None) + int(Cell.all_cells_2d[pos].bottom is not None) > 1:
+                continue
+                # pass
             new_board = Cell.all_cells_2d.copy()
             new_board[self.pos].content = None
             new_board[pos].content = self
@@ -499,7 +506,7 @@ class Player:
                         pos[0] == game.grid_num - 1 and loc == 3 or pos[1] == game.grid_num - 1 and loc == 2:
                     continue
 
-                # 已有墙的位置
+                # 已有墙的位置22222
                 if loc == 0 and Cell.all_cells_2d[pos].left or loc == 1 and Cell.all_cells_2d[pos].top or \
                         loc == 2 and Cell.all_cells_2d[pos].right or loc == 3 and Cell.all_cells_2d[pos].bottom:
                     continue
@@ -516,8 +523,10 @@ class Player:
                 for pos_go, i in np.ndenumerate(terr):
                     is_my_terr = True
                     for player in self.all_players:
-                        if player is not self and i >= player.territory[pos_go] > 0 or i <= 0:
+                        if player is not self and i > player.territory[pos_go] > 0 or i <= 0:
                             is_my_terr = False
+                        if i == player.territory[pos_go]:
+                            terr_num -= 0.5
                     if is_my_terr:
                         terr_num += 1
                 choices.append((pos, loc, terr_num))
@@ -529,7 +538,7 @@ class Player:
                 max_terr = terr
         max_terr_choices = []
         for pos, loc, terr in choices:
-            if terr >= max_terr - 1:
+            if terr >= max_terr :
                 max_terr_choices.append((pos, loc))
         print(max_terr, max_terr_choices)
         if max_terr_choices:
