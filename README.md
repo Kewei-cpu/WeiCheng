@@ -2,7 +2,7 @@
 # 围城 WeiCheng v2
 ## 概述
 * 一款原创策略棋类游戏  
-* 开发者 kewei-cpu@github.com
+* 开发者 [kewei-cpu](https://github.com/Kewei-cpu)
 ## 游戏玩法
 * 圈地！  
 * 当你和对手彻底被一堵堵墙隔开时，领地多的人获胜。  
