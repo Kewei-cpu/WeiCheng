@@ -1,5 +1,6 @@
 import random
 import sys
+import time
 
 import numpy as np
 import pygame
@@ -465,6 +466,7 @@ class Player:
             Cell.all_cells_2d[self.pos].content = None
             self.pos = game.mouse_pos
             Cell.all_cells_2d[game.mouse_pos].content = self
+            game.record['moves'][self.name].append([self.pos])
             return True
 
     def place_at_mouse(self):
@@ -475,7 +477,10 @@ class Player:
                 game.mouse_wall_pos == 3 and Cell.all_cells_2d[self.pos].bottom is None and self.pos[
             0] < game.grid_num - 1:
             Wall(self.pos, game.mouse_wall_pos, [255 - (255 - i) * 0.5 for i in self.color])
-            game.test_end()
+            game.record['moves'][self.name][-1].append(game.mouse_wall_pos)
+            game.record['steps'] += 1
+            if game.test_end():
+                return None
             return True
 
     def max_territory_strategy(self):
@@ -550,6 +555,12 @@ class Game:
         self.mouse_pos = (0, 0)
         self.mouse_wall_pos = 0
         self.running = True
+        self.record = {
+            'time': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+            'steps': 0,
+            'moves': dict(),
+            'result': dict()
+        }
 
     def event_handler(self):
         events = pygame.event.get()
@@ -569,8 +580,10 @@ class Game:
                         if res:
                             self.next_step()
 
-    def get_player_num(self):
+    def get_players(self):
         self.player_num = len(Player.all_players)
+        for player in Player.all_players:
+            self.record['moves'][player.name] = []
 
     def test_end(self):
         """
@@ -589,6 +602,7 @@ class Game:
                 if all_die:
                     self.running = False
                     self.score_calculator()
+                    return True
 
     def score_calculator(self):
         """
@@ -602,7 +616,15 @@ class Game:
         # 计算每个玩家的占地面积
         for player in Player.all_players:
             score = np.sum(Cell.bfs(player.pos, Cell.all_cells_2d, step=100))
+            self.record['result'][player.name] = score
             print(player.name, score, sep='\t\t\t')
+        self.write_log()
+        print(self.record)
+
+    def write_log(self):
+        with open(f"./log/{self.record['time'].split(' ')[0]}.txt", 'a') as f:
+            f.write(str(self.record))
+            f.write('\n')
 
     def robot_handler(self):
         if 'Robot' in Player.all_players[self.player_flag].name:
@@ -613,6 +635,8 @@ class Game:
                 Cell.all_cells_2d[act[0]].content = Player.all_players[self.player_flag]
                 Wall(act[0], act[1], Player.all_players[self.player_flag].color)
                 self.test_end()
+                self.record['steps'] += 1
+                self.record['moves'][Player.all_players[self.player_flag].name].append([act[0], act[1]])
                 self.next_player()
 
     def next_step(self):
@@ -685,11 +709,11 @@ class Game:
         pygame.init()
         screen = self.init_screen()
         Cell.init_grid(self.grid_num, self.grid_num)
-        Player((0, 0), (130, 175, 214), 'Blue Robot')
-        Player((0, 6), (192, 141, 117), 'Brown Robot')
-        Player((6, 0), (207, 155, 176), 'Pink Robot')
+        Player((0, 0), (130, 175, 214), 'Blue Player')
+        # Player((0, 6), (192, 141, 117), 'Brown Robot')
+        # Player((6, 0), (207, 155, 176), 'Pink Robot')
         Player((6, 6), (80, 181, 142), 'Green Robot')
-        game.get_player_num()
+        game.get_players()
 
         while True:
             Player.refresh_available()
