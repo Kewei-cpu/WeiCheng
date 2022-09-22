@@ -1,591 +1,741 @@
-import pygame
+import random
 import sys
-from pygame.locals import *
 import time
 
-initRole = initStep = 1
-initFlag = 0
-cross_pos = circle_pos = []
-b = chess_h = chess_v = chess_cross_bfs = []
-chess_all = 7
-times = 0
-isStart = False
-win_cross_bfs = win_circle_bfs = []
-global_time = 20
-clock_ = global_time
-clock = pygame.time.Clock()
-
-chess_space = 120
-chess_cell_size = 80
-chess_cell_num = 7
-
-
-def matrix(row, column, item):
-    matrix_list = []
-    for i in range(row):
-        matrix_list.append([])
-        for j in range(column):
-            matrix_list[i].append(item)
-    return matrix_list
-
-
-def time_judge():
-    global clock_, initStep, initRole
-    if clock_ <= 0:
-        if initRole == 1:
-            if initStep == 1:
-                initRole = 1
-                initStep = 2
-            elif initStep == 2:
-                if cross_pos[1] >= 1:
-                    if chess_h[cross_pos[0]][cross_pos[1] - 1] == 0:
-                        chess_h[cross_pos[0]][cross_pos[1] - 1] = 1
-                if cross_pos[1] <= chess_cell_num - 2:
-                    if chess_h[cross_pos[0]][cross_pos[1]] == 0:
-                        chess_h[cross_pos[0]][cross_pos[1]] = 1
-                if cross_pos[0] >= 1:
-                    if chess_v[cross_pos[0] - 1][cross_pos[1]] == 0:
-                        chess_v[cross_pos[0] - 1][cross_pos[1]] = 1
-                if cross_pos[0] <= chess_cell_num - 2:
-                    if chess_v[cross_pos[0]][cross_pos[1]] == 0:
-                        chess_v[cross_pos[0]][cross_pos[1]] = 1
-                    initRole = 2
-                    initStep = 1
-        elif initRole == 2:
-            if initStep == 1:
-                initStep = 2
-            elif initStep == 2:
-                if cross_pos[1] >= 1:
-                    if chess_h[circle_pos[0]][circle_pos[1] - 1] == 0:
-                        chess_h[circle_pos[0]][circle_pos[1] - 1] = 1
-                if circle_pos[1] <= chess_cell_num - 2:
-                    if chess_h[circle_pos[0]][circle_pos[1]] == 0:
-                        chess_h[circle_pos[0]][circle_pos[1]] = 1
-                if circle_pos[0] >= 1:
-                    if chess_v[circle_pos[0] - 1][circle_pos[1]] == 0:
-                        chess_v[circle_pos[0] - 1][circle_pos[1]] = 1
-                if circle_pos[0] <= chess_cell_num - 2:
-                    if chess_v[circle_pos[0]][circle_pos[1]] == 0:
-                        chess_v[circle_pos[0]][circle_pos[1]] = 1
-                initRole = 1
-                initStep = 1
-        clock_ = global_time
-
-
-def bfs(wall_hor, wall_ver, start_point, gone_place, step=50):
-    dis_array = []
-    gone_place[start_point[0]][start_point[1]] = 1
-    x, y = len(gone_place), len(gone_place[0])
-    if step != 0:
-        step -= 1
-
-        if start_point[1] - 1 >= 0:
-            if wall_hor[start_point[0]][start_point[1] - 1] == 0 and gone_place[start_point[0]][
-                start_point[1] - 1] == 0:
-                dis_array.append([start_point[0], start_point[1] - 1, step])
-                
-            
-
-        if start_point[1] + 1 <= y - 1:
-            if wall_hor[start_point[0]][start_point[1]] == 0 and gone_place[start_point[0]][start_point[1] + 1] == 0:
-                dis_array.append([start_point[0], start_point[1] + 1, step])
-                
-
-
-        if start_point[0] - 1 >= 0:
-            if wall_ver[start_point[0] - 1][start_point[1]] == 0 and gone_place[start_point[0] - 1][
-                start_point[1]] == 0:
-                dis_array.append([start_point[0] - 1, start_point[1], step])
-                
-            
-
-        if start_point[0] + 1 <= x - 1:
-            if wall_ver[start_point[0]][start_point[1]] == 0 and gone_place[start_point[0] + 1][start_point[1]] == 0:
-                dis_array.append([start_point[0] + 1, start_point[1], step])
-                
-            
-
-        for i in dis_array:
-            gone_place = bfs(wall_hor, wall_ver, [i[0], i[1]], gone_place, i[2])
-
-    return gone_place
-
-
-def bfs_include_circle(wall_hor, wall_ver, start_point, gone_place, step=50000):
-    if step != 0 and start_point != circle_pos:
-        dis_array = []
-        x, y = len(gone_place), len(gone_place[0])
-        gone_place[start_point[0]][start_point[1]] = 1
-        step -= 1
-
-        if start_point[1] - 1 >= 0:
-            if wall_hor[start_point[0]][start_point[1] - 1] == 0 and gone_place[start_point[0]][
-                start_point[1] - 1] == 0 and not (
-                    start_point[0] == circle_pos[0] and start_point[1] - 1 == circle_pos[1]):
-                dis_array.append([start_point[0], start_point[1] - 1, step])
-                
-            
-
-        if start_point[1] + 1 <= y - 1:
-            if wall_hor[start_point[0]][start_point[1]] == 0 and gone_place[start_point[0]][start_point[1] + 1] == 0 \
-                    and not (start_point[0] == circle_pos[0] and start_point[1] + 1 == circle_pos[1]):
-                dis_array.append([start_point[0], start_point[1] + 1, step])
-                
-            
-
-        if start_point[0] - 1 >= 0:
-            if wall_ver[start_point[0] - 1][start_point[1]] == 0 and gone_place[start_point[0] - 1][
-                start_point[1]] == 0 and not (start_point[0] - 1 == circle_pos[0] and start_point[1] == circle_pos[1]):
-                dis_array.append([start_point[0] - 1, start_point[1], step])
-                
-            
-
-        if start_point[0] + 1 <= x - 1:
-            if wall_ver[start_point[0]][start_point[1]] == 0 and gone_place[start_point[0] + 1][start_point[1]] == 0 \
-                    and not (start_point[0] + 1 == circle_pos[0] and start_point[1] == circle_pos[1]):
-                dis_array.append([start_point[0] + 1, start_point[1], step])
-                
-            
-
-        for i in dis_array:
-            gone_place = bfs(wall_hor, wall_ver, [i[0], i[1]], gone_place, i[2])
-
-    return gone_place
-
-
-def bfs_include_cross(wall_hor, wall_ver, start_point, gone_place, step=50000):
-    if step != 0 and start_point != cross_pos:
-        dis_array = []
-        x, y = len(gone_place), len(gone_place[0])
-        gone_place[start_point[0]][start_point[1]] = 1
-        step -= 1
-
-        if start_point[1] - 1 >= 0:
-            if wall_hor[start_point[0]][start_point[1] - 1] == 0 and gone_place[start_point[0]][
-                start_point[1] - 1] == 0 and not (
-                    start_point[0] == cross_pos[0] and start_point[1] - 1 == cross_pos[1]):
-                dis_array.append([start_point[0], start_point[1] - 1, step])
-                
-            
-
-        if start_point[1] + 1 <= y - 1:
-            if wall_hor[start_point[0]][start_point[1]] == 0 and gone_place[start_point[0]][start_point[1] + 1] == 0 \
-                    and not (start_point[0] == cross_pos[0] and start_point[1] + 1 == cross_pos[1]):
-                dis_array.append([start_point[0], start_point[1] + 1, step])
-                
-            
-
-        if start_point[0] - 1 >= 0:
-            if wall_ver[start_point[0] - 1][start_point[1]] == 0 and gone_place[start_point[0] - 1][
-                start_point[1]] == 0 and not (start_point[0] - 1 == cross_pos[0] and start_point[1] == cross_pos[1]):
-                dis_array.append([start_point[0] - 1, start_point[1], step])
-                
-            
-
-        if start_point[0] + 1 <= x - 1:
-            if wall_ver[start_point[0]][start_point[1]] == 0 and gone_place[start_point[0] + 1][start_point[1]] == 0 \
-                    and not (start_point[0] + 1 == cross_pos[0] and start_point[1] == cross_pos[1]):
-                dis_array.append([start_point[0] + 1, start_point[1], step])
-                
-            
-
-        for i in dis_array:
-            gone_place = bfs(wall_hor, wall_ver, [i[0], i[1]], gone_place, i[2])
-
-    return gone_place
-
-
-def init_chess(screen, hor, ver, cross_bfs, circle_bfs, cell_num, cell_size, space, normal_width=1,
-               abnormal_width=3):
-    if initFlag == 0:
-        for i in range(len(cross_bfs)):
-            for j in range(len(cross_bfs[0])):
-                if cross_bfs[i][j] == 1:
-                    pygame.draw.rect(screen, (139, 164, 196), (
-                        space + i * cell_size, space + j * cell_size, cell_size / 4, cell_size / 4),
-                                     0)
-
-        for i in range(len(circle_bfs)):
-            for j in range(len(circle_bfs[0])):
-                if circle_bfs[i][j] == 1:
-                    pygame.draw.rect(screen, (234, 96, 130), (
-                        space + (i + 0.75) * cell_size, space + (j + 0.75) * cell_size, cell_size / 4, cell_size / 4),
-                                     0)
-
-    else:
-        for i in range(len(win_cross_bfs)):
-            for j in range(len(win_cross_bfs[0])):
-                if win_cross_bfs[i][j] == 1:
-                    pygame.draw.rect(screen, (139, 164, 196), (
-                        space + i * cell_size, space + j * cell_size, cell_size, cell_size), 0)
-
-        for i in range(len(win_circle_bfs)):
-            for j in range(len(win_circle_bfs[0])):
-                if win_circle_bfs[i][j] == 1:
-                    pygame.draw.rect(screen, (255, 90, 120), (
-                        space + i * cell_size, space + j * cell_size, cell_size, cell_size), 0)
-
-    for x in range(0, cell_size * cell_num - 1, cell_size):
-        pygame.draw.line(screen, (0, 0, 0), (x + space, 0 + space),
-                         (x + space, cell_size * cell_num + space), normal_width)
-
-    for y in range(0, cell_size * cell_num - 1, cell_size):
-        pygame.draw.line(screen, (0, 0, 0), (0 + space, y + space),
-                         (cell_size * cell_num + space, y + space), normal_width)
-
-    pygame.draw.line(screen, (0, 0, 0), (space, space),
-                     (space, space + cell_size * cell_num), abnormal_width)
-    pygame.draw.line(screen, (0, 0, 0), (space, space),
-                     (space + cell_size * cell_num, space), abnormal_width)
-    pygame.draw.line(screen, (0, 0, 0), (space + cell_size * cell_num, space + cell_size * cell_num),
-                     (space, space + cell_size * cell_num), abnormal_width)
-    pygame.draw.line(screen, (0, 0, 0), (space + cell_size * cell_num, space + cell_size * cell_num),
-                     (space + cell_size * cell_num, space), abnormal_width)
-
-    for i in range(len(hor)):
-        for j in range(len(hor[0])):
-            if hor[i][j] == 1:
-                pygame.draw.line(screen, (80, 100, 196),
-                                 (space + i * cell_size, space + (j + 1) * cell_size),
-                                 (space + (i + 1) * cell_size, space + (j + 1) * cell_size), abnormal_width)
-            if hor[i][j] == 2:
-                pygame.draw.line(screen, (170, 50, 80),
-                                 (space + i * cell_size, space + (j + 1) * cell_size),
-                                 (space + (i + 1) * cell_size, space + (j + 1) * cell_size), abnormal_width)
-
-    for i in range(len(ver)):
-        for j in range(len(ver[0])):
-            if ver[i][j] == 1:
-                pygame.draw.line(screen, (80, 100, 196),
-                                 (space + (i + 1) * cell_size, space + j * cell_size),
-                                 (space + (i + 1) * cell_size, space + (j + 1) * cell_size), abnormal_width)
-
-            if ver[i][j] == 2:
-                pygame.draw.line(screen, (170, 50, 80),
-                                 (space + (i + 1) * cell_size, space + j * cell_size),
-                                 (space + (i + 1) * cell_size, space + (j + 1) * cell_size), abnormal_width)
-
-    screen.blit(cross, (space + cross_pos[0] * cell_size, space + cross_pos[1] * cell_size))
-    screen.blit(circle, (space + circle_pos[0] * cell_size, space + circle_pos[1] * cell_size))
-
-
-def isWin():
-    global times, initFlag, win_cross_bfs, win_circle_bfs, w_circle, w_cross
-    win_cross_bfs = bfs(chess_h, chess_v, cross_pos, matrix(chess_all, chess_all, 0), 5000)
-    win_circle_bfs = bfs(chess_h, chess_v, circle_pos, matrix(chess_all, chess_all, 0), 5000)
-    if win_cross_bfs[circle_pos[0]][circle_pos[1]] == 0:
-        w_cross = 0
-        w_circle = 0
-        for i in range(len(win_cross_bfs)):
-            for j in range(len(win_cross_bfs[0])):
-                if win_cross_bfs[i][j] == 1:
-                    w_cross += 1
-
-        for i in range(len(win_circle_bfs)):
-            for j in range(len(win_circle_bfs[0])):
-                if win_circle_bfs[i][j] == 1:
-                    w_circle += 1
-        print(w_cross, ':', w_circle)
-        if w_cross > w_circle:
-            initFlag = 1
-        elif w_cross < w_circle:
-            initFlag = 2
-        else:
-            initFlag = 3
-
-        chess_cross_bfs = bfs_include_circle(chess_h, chess_v, cross_pos, matrix(chess_all, chess_all, 0), 3)
-        chess_cross_bfs[circle_pos[0]][circle_pos[1]] = 0
-        chess_circle_bfs = bfs_include_cross(chess_h, chess_v, circle_pos, matrix(chess_all, chess_all, 0), 3)
-        chess_circle_bfs[cross_pos[0]][cross_pos[1]] = 0
-        init_chess(screen, chess_h, chess_v, chess_cross_bfs, chess_circle_bfs, chess_cell_num, chess_cell_size,
-                   chess_space, 1, 10)
-        textRend()
-        pygame.display.update()
-        time.sleep(5)
-        initMat()
-
-
-def eventHerder():
-    for event in pygame.event.get():
-        global initRole, initStep, initFlag, clock_
-        if event.type == QUIT:
-            pygame.quit()
-            sys.exit()
-        if event.type == MOUSEBUTTONDOWN:
-            x, y = pygame.mouse.get_pos()
-            if chess_space <= x <= chess_space + chess_cell_size * chess_cell_num and chess_space <= y <= chess_space + \
-                    chess_cell_size * chess_cell_num:
-
-                chess_cross_bfs_3 = bfs(chess_h, chess_v, cross_pos, matrix(chess_all, chess_all, 0), 3)
-                chess_circle_bfs_3 = bfs(chess_h, chess_v, circle_pos, matrix(chess_all, chess_all, 0), 3)
-                chess_cross_bfs_3[circle_pos[0]][circle_pos[1]] = 0
-                chess_circle_bfs_3[cross_pos[0]][cross_pos[1]] = 0
-
-                if initRole == 1 and initStep == 1:
-                    if chess_cross_bfs_3[(x - chess_space) // chess_cell_size][
-                        (y - chess_space) // chess_cell_size] == 1:
-                        cross_pos[0] = (x - chess_space) // chess_cell_size
-                        cross_pos[1] = (y - chess_space) // chess_cell_size
-                        initStep = 2
-                        clock_ = global_time
-
-                if initRole == 2 and initStep == 1:
-                    if chess_circle_bfs_3[(x - chess_space) // chess_cell_size][
-                        (y - chess_space) // chess_cell_size] == 1:
-                        circle_pos[0] = (x - chess_space) // chess_cell_size
-                        circle_pos[1] = (y - chess_space) // chess_cell_size
-                        initStep = 2
-                        clock_ = global_time
-
-        if event.type == KEYDOWN:
-            if initRole == 1 and initStep == 2:
-                if event.key == pygame.K_UP:
-                    if cross_pos[1] >= 1:
-                        if chess_h[cross_pos[0]][cross_pos[1] - 1] == 0:
-                            chess_h[cross_pos[0]][cross_pos[1] - 1] = 1
-                            initRole = 2
-                            initStep = 1
-                            clock_ = global_time
-
-                if event.key == pygame.K_DOWN:
-                    if cross_pos[1] <= chess_cell_num - 2:
-                        if chess_h[cross_pos[0]][cross_pos[1]] == 0:
-                            chess_h[cross_pos[0]][cross_pos[1]] = 1
-                            initRole = 2
-                            initStep = 1
-                            clock_ = global_time
-
-                if event.key == pygame.K_LEFT:
-                    if cross_pos[0] >= 1:
-                        if chess_v[cross_pos[0] - 1][cross_pos[1]] == 0:
-                            chess_v[cross_pos[0] - 1][cross_pos[1]] = 1
-                            initRole = 2
-                            initStep = 1
-                            clock_ = global_time
-
-                if event.key == pygame.K_RIGHT:
-                    if cross_pos[0] <= chess_cell_num - 2:
-                        if chess_v[cross_pos[0]][cross_pos[1]] == 0:
-                            chess_v[cross_pos[0]][cross_pos[1]] = 1
-                            initRole = 2
-                            initStep = 1
-                            clock_ = global_time
-
-            if initRole == 2 and initStep == 2:
-                if event.key == pygame.K_UP:
-                    if circle_pos[1] >= 1:
-                        if chess_h[circle_pos[0]][circle_pos[1] - 1] == 0:
-                            chess_h[circle_pos[0]][circle_pos[1] - 1] = 2
-                            initRole = 1
-                            initStep = 1
-                            clock_ = global_time
-
-                if event.key == pygame.K_DOWN:
-                    if circle_pos[1] <= chess_cell_num - 2:
-                        if chess_h[circle_pos[0]][circle_pos[1]] == 0:
-                            chess_h[circle_pos[0]][circle_pos[1]] = 2
-                            initRole = 1
-                            initStep = 1
-                            clock_ = global_time
-
-                if event.key == pygame.K_LEFT:
-                    if circle_pos[0] >= 1:
-                        if chess_v[circle_pos[0] - 1][circle_pos[1]] == 0:
-                            chess_v[circle_pos[0] - 1][circle_pos[1]] = 2
-                            initRole = 1
-                            initStep = 1
-                            clock_ = global_time
-
-                if event.key == pygame.K_RIGHT:
-                    if circle_pos[0] <= chess_cell_num - 2:
-                        if chess_v[circle_pos[0]][circle_pos[1]] == 0:
-                            chess_v[circle_pos[0]][circle_pos[1]] = 2
-                            initRole = 1
-                            initStep = 1
-                            clock_ = global_time
-            if event.key == K_SPACE:
-                initMat()
-
-
-def game_clock():
-    global clock_
-    pygame.time.get_ticks()
-    if pygame.time.get_ticks() % 1 == 0:
-        screen.fill((220, 220, 220))
-        clock_ -= 0.1
-        clock_ = round(clock_, 2)
-    clock.tick(10)
-    clock_g = str(clock_)
-    largeText = pygame.font.Font('./resources/ali-font.ttf', 30)
-    TextSurf, TextRect = text_objects(clock_g, largeText)
-    TextRect.topleft = (25, 25)
-    screen.blit(TextSurf, TextRect)
-
-
-def text_objects(text, font):
-    textSurface = font.render(text, True, (0, 0, 0))
-    return textSurface, textSurface.get_rect()
-
-
-def text_objects_complex(text, font, isBold, color):
-    textSurface = font.render(text, isBold, color)
-    return textSurface, textSurface.get_rect()
-
-
-def textRend():
-    global initRole, initStep
-    blue = (100, 130, 170)
-    red = (200, 70, 100)
-    if initFlag == 0:
-        myfont = pygame.font.Font('./resources/ali-font.ttf', 60)
-        if initRole == 1:
-            if initStep == 1:
-                textImage, textRect = text_objects_complex("蓝方  移动", myfont, True, blue)
+import numpy as np
+import pygame
+from pygame.locals import *
+
+
+class Cell:
+    # 实例列表
+    all_cells = []
+    all_cells_2d = None
+
+    def __init__(self, pos):
+        """
+        :param pos:位置
+        :return:
+        """
+        self.pos = pos
+        self.content = None
+
+        # 网格四周墙壁情况 0为无 -1为边界 1为放置的墙
+        self.left = None
+        self.top = None
+        self.right = None
+        self.bottom = None
+
+        self.all_cells.append(self)
+        self.all_cells_2d[pos[0], pos[1]] = self
+
+    @classmethod
+    def display(cls, scr):
+        """
+        显示所有网格
+        :param scr: 屏幕
+        :return:
+        """
+
+        for i, cell in np.ndenumerate(cls.all_cells_2d):
+            cell.draw(scr)
+            cell.draw_wall(scr)
+
+    def draw(self, scr):
+        """
+        显示单个网格
+        :param scr: 屏幕
+        :return:
+        """
+        pygame.draw.rect(
+            surface=scr,
+            color=(255, 255, 255),
+            rect=(game.border_size + self.pos[1] * game.grid_size + game.padding_size // 2 + 3,
+                  game.border_size + self.pos[0] * game.grid_size + game.padding_size // 2 + 3,
+                  game.grid_size - game.padding_size - 6,
+                  game.grid_size - game.padding_size - 6),
+            border_radius=0
+        )
+
+    def draw_wall(self, scr):
+        """
+        显示墙（人放的）
+        只需显示left top（墙重复保存）
+        :param scr:
+        :return:
+        """
+        if self.pos[1] >= 1 and self.left:
+            Player.draw_left_wall(scr, self.left.color, self.pos[0], self.pos[1])
+            Player.draw_left_wall(scr, [color * 0.5 for color in self.left.color], self.pos[0], self.pos[1], width=3)
+
+        if self.pos[0] >= 1 and self.top:
+            Player.draw_top_wall(scr, self.top.color, self.pos[0], self.pos[1])
+            Player.draw_top_wall(scr, [color * 0.5 for color in self.top.color], self.pos[0], self.pos[1], width=3)
+
+    @classmethod
+    def init_grid(cls, width, height):
+        """
+        生成网格对象
+        :param width: 几列
+        :param height: 几行
+        :return:
+        """
+        if not cls.all_cells_2d:
+            cls.all_cells_2d = np.empty((game.grid_num, game.grid_num), dtype='object')
+        for i in range(width):
+            for j in range(height):
+                Cell((i, j))
+
+    @classmethod
+    def bfs(cls, pos, board, step=3, ignore_player=False, return_num=False):
+        """
+        广度优先搜索，考虑墙，可以添加步数限制
+        :param board:
+        :param return_num: 是否返回步数列表
+        :param ignore_player: 是否忽略玩家
+        :param step:步数限制
+        :param pos:
+        :return:
+        """
+        visited = np.zeros_like(board) > 0
+        length = np.zeros_like(board)
+        queue = [(pos, 1)]
+        visited[pos] = True
+        while queue:
+            s = queue.pop(0)
+            if s[1] <= step:  # 步数限制
+                if s[0][1] >= 1 and not board[s[0]].left and \
+                        (not board[s[0][0], s[0][1] - 1].content or ignore_player):
+                    if not visited[s[0][0], s[0][1] - 1]:
+                        queue.append(((s[0][0], s[0][1] - 1), s[1] + 1))
+                        visited[s[0][0], s[0][1] - 1] = True
+                        length[s[0][0], s[0][1] - 1] = s[1]
+                if s[0][0] >= 1 and not board[s[0]].top and \
+                        (not board[s[0][0] - 1, s[0][1]].content or ignore_player):
+                    if not visited[s[0][0] - 1, s[0][1]]:
+                        queue.append(((s[0][0] - 1, s[0][1]), s[1] + 1))
+                        visited[s[0][0] - 1, s[0][1]] = True
+                        length[s[0][0] - 1, s[0][1]] = s[1]
+                if s[0][1] <= game.grid_num - 2 and not board[s[0]].right and \
+                        (not board[s[0][0], s[0][1] + 1].content or ignore_player):
+                    if not visited[s[0][0], s[0][1] + 1]:
+                        queue.append(((s[0][0], s[0][1] + 1), s[1] + 1))
+                        visited[s[0][0], s[0][1] + 1] = True
+                        length[s[0][0], s[0][1] + 1] = s[1]
+                if s[0][0] <= game.grid_num - 2 and not board[s[0]].bottom and \
+                        (not board[s[0][0] + 1, s[0][1]].content or ignore_player):
+                    if not visited[s[0][0] + 1, s[0][1]]:
+                        queue.append(((s[0][0] + 1, s[0][1]), s[1] + 1))
+                        visited[s[0][0] + 1, s[0][1]] = True
+                        length[s[0][0] + 1, s[0][1]] = s[1]
+        if return_num:
+            return length
+        return visited
+
+    @classmethod
+    def is_isolated(cls, pos, step=3, ):
+        """
+        判断玩家是否呗隔离，考虑墙，可以添加步数限制
+        :param step:步数限制
+        :param pos:
+        :return:
+        """
+        visited = np.zeros_like(Cell.all_cells_2d) > 0
+        queue = [(pos, 1)]
+        visited[pos] = True
+        while queue:
+            s = queue.pop(0)
+            if s[1] <= step:  # 步数限制
+                # bfs
+                if s[0][1] >= 1 and not Cell.all_cells_2d[s[0]].left:
+                    if not visited[s[0][0], s[0][1] - 1]:
+                        if Cell.all_cells_2d[s[0][0], s[0][1] - 1].content and (s[0][0], s[0][1] - 1) != pos:  # 检测玩家
+                            return False
+                        queue.append(((s[0][0], s[0][1] - 1), s[1] + 1))
+                        visited[s[0][0], s[0][1] - 1] = True
+                if s[0][0] >= 1 and not Cell.all_cells_2d[s[0]].top:
+                    if not visited[s[0][0] - 1, s[0][1]]:
+                        if Cell.all_cells_2d[s[0][0] - 1, s[0][1]].content and (s[0][0] - 1, s[0][1]) != pos:  # 检测玩家
+                            return False
+                        queue.append(((s[0][0] - 1, s[0][1]), s[1] + 1))
+                        visited[s[0][0] - 1, s[0][1]] = True
+                if s[0][1] <= game.grid_num - 2 and not Cell.all_cells_2d[s[0]].right:
+                    if not visited[s[0][0], s[0][1] + 1]:
+                        if Cell.all_cells_2d[s[0][0], s[0][1] + 1].content and (s[0][0], s[0][1] + 1) != pos:  # 检测玩家
+                            return False
+                        queue.append(((s[0][0], s[0][1] + 1), s[1] + 1))
+                        visited[s[0][0], s[0][1] + 1] = True
+                if s[0][0] <= game.grid_num - 2 and not Cell.all_cells_2d[s[0]].bottom:
+                    if not visited[s[0][0] + 1, s[0][1]]:
+                        if Cell.all_cells_2d[s[0][0] + 1, s[0][1]].content and (s[0][0] + 1, s[0][1]) != pos:  # 检测玩家
+                            return False
+                        queue.append(((s[0][0] + 1, s[0][1]), s[1] + 1))
+                        visited[s[0][0] + 1, s[0][1]] = True
+        return True
+
+
+class Wall:
+    all_walls = []
+
+    def __init__(self, pos, location, color=(128, 128, 128)):
+        """
+        向期盼边界添加墙会报错
+        :param pos:
+        :param location: 0=left 1=top 2=right 3=bottom
+        :param color: 颜色
+        """
+        self.pos = pos
+        self.color = color
+        self.location = location
+        if location == 0:
+            Cell.all_cells_2d[pos].left = self
+            Cell.all_cells_2d[pos[0], pos[1] - 1].right = self
+        elif location == 1:
+            Cell.all_cells_2d[pos].top = self
+            Cell.all_cells_2d[pos[0] - 1, pos[1]].bottom = self
+        elif location == 2:
+            Cell.all_cells_2d[pos].right = self
+            Cell.all_cells_2d[pos[0], pos[1] + 1].left = self
+        elif location == 3:
+            Cell.all_cells_2d[pos].bottom = self
+            Cell.all_cells_2d[pos[0] + 1, pos[1]].top = self
+        self.all_walls.append(self)
+
+    def __del__(self):
+        if self.location == 0:
+            Cell.all_cells_2d[self.pos].left = None
+            Cell.all_cells_2d[self.pos[0], self.pos[1] - 1].right = None
+        elif self.location == 1:
+            Cell.all_cells_2d[self.pos].top = None
+            Cell.all_cells_2d[self.pos[0] - 1, self.pos[1]].bottom = None
+        elif self.location == 2:
+            Cell.all_cells_2d[self.pos].right = None
+            Cell.all_cells_2d[self.pos[0], self.pos[1] + 1].left = None
+        elif self.location == 3:
+            Cell.all_cells_2d[self.pos].bottom = None
+            Cell.all_cells_2d[self.pos[0] + 1, self.pos[1]].top = None
+        if self in self.all_walls:
+            self.all_walls.remove(self)
+
+
+class Player:
+    all_players = []
+
+    def __init__(self, pos, color, name=""):
+        """
+        玩家
+        :param start_pos: 位置，二元组
+        :param color: 颜色， 三元组
+        :param name: 名字
+        """
+        self.pos = pos
+        self.color = color
+        self.name = name
+        self.available = []
+        self.territory = None
+        self.isolated = False
+
+        # 将玩家添加到网格中
+        Cell.all_cells_2d[pos].content = self
+        self.all_players.append(self)
+
+    @classmethod
+    def refresh_available(cls):
+        for player in cls.all_players:
+            player.get_available()
+
+    @classmethod
+    def refresh_territory(cls):
+        for player in cls.all_players:
+            player.territory = Cell.bfs(player.pos, Cell.all_cells_2d, step=100, ignore_player=True, return_num=True)
+
+    def get_available(self):
+        self.available = []
+        for pos, i in np.ndenumerate(Cell.bfs(self.pos, Cell.all_cells_2d)):
+            if i:
+                self.available.append(pos)
+
+    @classmethod
+    def display(cls, scr):
+        """
+        显示所有玩家
+        :param scr: 屏幕
+        :return:
+        """
+        for i, player in enumerate(cls.all_players):
+            if not player.isolated:
+                player.draw_territory(scr)
+                player.draw(scr)
             else:
-                textImage, textRect = text_objects_complex("蓝方  放置", myfont, True, blue)
+                player.draw_end(scr, Cell.bfs(player.pos, Cell.all_cells_2d, 100))
+                player.draw_dead(scr)
+                if game.player_flag == i:
+                    game.next_player()
+        for i, player in enumerate(cls.all_players):
+            if game.player_flag == i:
+                player.draw_outline(scr)
+                if game.step_flag == 0:
+                    player.draw_available(scr)
+                    player.draw_preview(scr)
+                else:
+                    player.draw_wall_preview(scr)
+
+    def draw_territory(self, scr):
+        for pos, i in np.ndenumerate(self.territory):
+            terr = True
+            for player in self.all_players:
+                if player is not self and player.territory[pos] <= i:
+                    terr = False
+            if terr:
+                pygame.draw.rect(
+                    surface=scr,
+                    color=[255 - (255 - i) * 0.4 for i in self.color],
+                    rect=(game.border_size + pos[1] * game.grid_size + game.padding_size // 2 + 3,
+                          game.border_size + pos[0] * game.grid_size + game.padding_size // 2 + 3,
+                          game.grid_size - game.padding_size - 6,
+                          game.grid_size - game.padding_size - 6),
+                    width=10
+                )
+
+    def draw_preview(self, scr):
+        """
+        显示玩家可能的位置
+        :param scr:
+        :return:
+        """
+        if game.mouse_pos in self.available and game.mouse_pos != self.pos:
+            pygame.draw.circle(
+                surface=scr,
+                color=[255 - (255 - i) * 0.5 for i in self.color],
+                center=(game.border_size + (game.mouse_pos[1] + 0.5) * game.grid_size,
+                        game.border_size + (game.mouse_pos[0] + 0.5) * game.grid_size),
+                radius=game.grid_size * 0.3,
+            )
+
+    @staticmethod
+    def draw_left_wall(scr, color, pos_x, pos_y, width=0):
+        pygame.draw.polygon(
+            surface=scr,
+            color=color,
+            points=((game.border_size + pos_y * game.grid_size,
+                     game.border_size + pos_x * game.grid_size),
+                    (game.border_size + pos_y * game.grid_size + game.padding_size // 3,
+                     game.border_size + pos_x * game.grid_size + game.padding_size // 3),
+                    (game.border_size + pos_y * game.grid_size + game.padding_size // 3,
+                     game.border_size + (pos_x + 1) * game.grid_size - game.padding_size // 3),
+                    (game.border_size + pos_y * game.grid_size,
+                     game.border_size + (pos_x + 1) * game.grid_size),
+                    (game.border_size + pos_y * game.grid_size - game.padding_size // 3,
+                     game.border_size + (pos_x + 1) * game.grid_size - game.padding_size // 3),
+                    (game.border_size + pos_y * game.grid_size - game.padding_size // 3,
+                     game.border_size + pos_x * game.grid_size + game.padding_size // 3),
+                    ),
+            width=width)
+
+    @staticmethod
+    def draw_top_wall(scr, color, pos_x, pos_y, width=0):
+        pygame.draw.polygon(
+            surface=scr,
+            color=color,
+            points=((game.border_size + pos_y * game.grid_size,
+                     game.border_size + pos_x * game.grid_size),
+                    (game.border_size + pos_y * game.grid_size + game.padding_size // 3,
+                     game.border_size + pos_x * game.grid_size + game.padding_size // 3),
+                    (game.border_size + (pos_y + 1) * game.grid_size - game.padding_size // 3,
+                     game.border_size + pos_x * game.grid_size + game.padding_size // 3),
+                    (game.border_size + (pos_y + 1) * game.grid_size,
+                     game.border_size + pos_x * game.grid_size),
+                    (game.border_size + (pos_y + 1) * game.grid_size - game.padding_size // 3,
+                     game.border_size + pos_x * game.grid_size - game.padding_size // 3),
+                    (game.border_size + pos_y * game.grid_size + game.padding_size // 3,
+                     game.border_size + pos_x * game.grid_size - game.padding_size // 3),
+                    ),
+            width=width
+        )
+
+    def draw_wall_preview(self, scr):
+        """
+        0=left 1=top 2=right 3=bottom
+        :param scr:
+        :return:
+        """
+        if pygame.mouse.get_pos()[0] < game.border_size + (self.pos[1] + 0.5) * game.grid_size and \
+                abs(pygame.mouse.get_pos()[1] - (game.border_size + (self.pos[0] + 0.5) * game.grid_size)) < \
+                abs(game.border_size + (self.pos[1] + 0.5) * game.grid_size - pygame.mouse.get_pos()[0]) and \
+                Cell.all_cells_2d[self.pos].left is None and self.pos[1] > 0:
+            self.draw_left_wall(scr, [255 - (255 - i) * 0.5 for i in self.color], self.pos[0], self.pos[1])
+            game.mouse_wall_pos = 0
+
+
+        elif pygame.mouse.get_pos()[1] < game.border_size + (self.pos[0] + 0.5) * game.grid_size and \
+                abs(pygame.mouse.get_pos()[0] - (game.border_size + (self.pos[1] + 0.5) * game.grid_size)) < \
+                abs(game.border_size + (self.pos[0] + 0.5) * game.grid_size - pygame.mouse.get_pos()[1]) and \
+                Cell.all_cells_2d[self.pos].top is None and self.pos[0] > 0:
+            self.draw_top_wall(scr, [255 - (255 - i) * 0.5 for i in self.color], self.pos[0], self.pos[1])
+            game.mouse_wall_pos = 1
+
+        elif pygame.mouse.get_pos()[0] > game.border_size + (self.pos[1] + 0.5) * game.grid_size and \
+                abs(pygame.mouse.get_pos()[1] - (game.border_size + (self.pos[0] + 0.5) * game.grid_size)) < \
+                abs(game.border_size + (self.pos[1] + 0.5) * game.grid_size - pygame.mouse.get_pos()[0]) and \
+                Cell.all_cells_2d[self.pos].right is None and self.pos[1] < game.grid_num - 1:
+            self.draw_left_wall(scr, [255 - (255 - i) * 0.5 for i in self.color], self.pos[0], self.pos[1] + 1)
+            game.mouse_wall_pos = 2
+
+        elif pygame.mouse.get_pos()[1] > game.border_size + (self.pos[0] + 0.5) * game.grid_size and \
+                abs(pygame.mouse.get_pos()[0] - (game.border_size + (self.pos[1] + 0.5) * game.grid_size)) < \
+                abs(game.border_size + (self.pos[0] + 0.5) * game.grid_size - pygame.mouse.get_pos()[1]) and \
+                Cell.all_cells_2d[self.pos].bottom is None and self.pos[0] < game.grid_num - 1:
+            self.draw_top_wall(scr, [255 - (255 - i) * 0.5 for i in self.color], self.pos[0] + 1, self.pos[1])
+            game.mouse_wall_pos = 3
+
+    def draw_outline(self, scr):
+        """
+        显示选中的玩家
+        :param scr: 屏幕
+        :return:
+        """
+        pygame.draw.circle(
+            surface=scr,
+            color=[color * 0.7 for color in self.color],
+            center=(game.border_size + (self.pos[1] + 0.5) * game.grid_size,
+                    game.border_size + (self.pos[0] + 0.5) * game.grid_size),
+            width=5,
+            radius=game.grid_size * 0.3,
+        )
+
+    def draw_available(self, scr):
+        """
+        显示提示
+        :param scr: 屏幕
+1        """
+        for pos in self.available:
+            pygame.draw.rect(
+                surface=scr,
+                color=[color * 1 for color in self.color],
+                rect=(game.border_size + pos[1] * game.grid_size + game.padding_size // 2,
+                      game.border_size + pos[0] * game.grid_size + game.padding_size // 2,
+                      game.grid_size - game.padding_size,
+                      game.grid_size - game.padding_size),
+                width=6,
+                border_radius=0
+            )
+
+    def draw(self, scr):
+        """
+        显示单个玩家
+        :param scr: 屏幕
+        :return:
+        """
+        pygame.draw.circle(
+            surface=scr,
+            color=self.color,
+            center=(game.border_size + (self.pos[1] + 0.5) * game.grid_size,
+                    game.border_size + (self.pos[0] + 0.5) * game.grid_size),
+            radius=game.grid_size * 0.3,
+        )
+
+    def draw_end(self, scr, can_go):
+        for pos, i in np.ndenumerate(can_go):
+            if i:
+                pygame.draw.rect(
+                    surface=scr,
+                    color=[255 - (255 - i) * 0.4 for i in self.color],
+                    rect=(game.border_size + pos[1] * game.grid_size + game.padding_size // 2 + 3,
+                          game.border_size + pos[0] * game.grid_size + game.padding_size // 2 + 3,
+                          game.grid_size - game.padding_size - 6,
+                          game.grid_size - game.padding_size - 6),
+                )
+
+    def draw_dead(self, scr):
+        """
+        显示单个玩家
+        :param scr: 屏幕
+        :return:
+        """
+        pygame.draw.circle(
+            surface=scr,
+            color=[color * 0.5 for color in self.color],
+            center=(game.border_size + (self.pos[1] + 0.5) * game.grid_size,
+                    game.border_size + (self.pos[0] + 0.5) * game.grid_size),
+            radius=game.grid_size * 0.3,
+            width=5
+        )
+
+    def move_to_mouse(self):
+        if game.mouse_pos in self.available:
+            Cell.all_cells_2d[self.pos].content = None
+            self.pos = game.mouse_pos
+            Cell.all_cells_2d[game.mouse_pos].content = self
+            game.record['moves'][self.name].append([self.pos])
+            return True
+
+    def place_at_mouse(self):
+        if game.mouse_wall_pos == 0 and Cell.all_cells_2d[self.pos].left is None and self.pos[1] > 0 or \
+                game.mouse_wall_pos == 1 and Cell.all_cells_2d[self.pos].top is None and self.pos[0] > 0 or \
+                game.mouse_wall_pos == 2 and Cell.all_cells_2d[self.pos].right is None and self.pos[
+            1] < game.grid_num - 1 or \
+                game.mouse_wall_pos == 3 and Cell.all_cells_2d[self.pos].bottom is None and self.pos[
+            0] < game.grid_num - 1:
+            Wall(self.pos, game.mouse_wall_pos, [255 - (255 - i) * 0.5 for i in self.color])
+            game.record['moves'][self.name][-1].append(game.mouse_wall_pos)
+            game.record['steps'] += 1
+            if game.test_end():
+                return None
+            return True
+
+    def max_territory_strategy(self):
+        """
+        单步最优化策略
+        :return:
+        """
+        choices = []
+        for pos in self.available:  # 遍历每一个个能位置
+            if (abs(pos[0] - self.pos[0]) + abs(pos[1] - self.pos[1])) < 2:
+                # continue
+                pass
+            if int(Cell.all_cells_2d[pos].left is not None) + int(Cell.all_cells_2d[pos].top is not None) + \
+                    int(Cell.all_cells_2d[pos].right is not None) + int(Cell.all_cells_2d[pos].bottom is not None) > 1:
+                continue
+                # pass
+            new_board = Cell.all_cells_2d.copy()
+            new_board[self.pos].content = None
+            new_board[pos].content = self
+            for loc in range(4):
+                # 检测边缘
+                if pos[0] == 0 and loc == 1 or pos[1] == 0 and loc == 0 or \
+                        pos[0] == game.grid_num - 1 and loc == 3 or pos[1] == game.grid_num - 1 and loc == 2:
+                    continue
+
+                # 已有墙的位置22222
+                if loc == 0 and Cell.all_cells_2d[pos].left or loc == 1 and Cell.all_cells_2d[pos].top or \
+                        loc == 2 and Cell.all_cells_2d[pos].right or loc == 3 and Cell.all_cells_2d[pos].bottom:
+                    continue
+
+                a = Wall(pos, loc)
+                # 移动放置后进行模拟
+                terr = Cell.bfs(pos, new_board, step=100, ignore_player=True, return_num=True)
+                a.__del__()
+                new_board[pos].content = None
+                new_board[self.pos].content = self
+
+                # 计算当前领地大小
+                terr_num = 0
+                for pos_go, i in np.ndenumerate(terr):
+                    is_my_terr = True
+                    for player in self.all_players:
+                        if player is not self and i > player.territory[pos_go] > 0 or i <= 0:
+                            is_my_terr = False
+                        if i == player.territory[pos_go]:
+                            terr_num -= 0.5
+                    if is_my_terr:
+                        terr_num += 1
+                choices.append((pos, loc, terr_num))
+
+        # 选择领地最大的行动
+        max_terr = 0
+        for pos, loc, terr in choices:
+            if terr > max_terr:
+                max_terr = terr
+        max_terr_choices = []
+        for pos, loc, terr in choices:
+            if terr >= max_terr :
+                max_terr_choices.append((pos, loc))
+        print(max_terr, max_terr_choices)
+        if max_terr_choices:
+            return random.choice(max_terr_choices)
+
+
+class Game:
+    def __init__(self, grid_num, grid_size, border_size, padding_size):
+        """
+        :param padding_size: 每个棋盘格的间距
+        :param grid_num: 棋盘格数量
+        :param grid_size: 棋盘格大小
+        :param border_size: 棋盘边缘空白大小
+        """
+        self.border_size = border_size
+        self.grid_size = grid_size
+        self.grid_num = grid_num
+        self.window_size = 0
+        self.padding_size = padding_size
+        self.player_num = 0
+        self.player_flag = 0  # 玩家编号
+        self.step_flag = 0  # 0为移动，1为放置
+        self.mouse_pos = (0, 0)
+        self.mouse_wall_pos = 0
+        self.running = True
+        self.record = {
+            'time': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+            'steps': 0,
+            'moves': dict(),
+            'result': dict()
+        }
+
+    def event_handler(self):
+        events = pygame.event.get()
+        for event in events:
+            # 退出
+            if event.type == QUIT:
+                pygame.display.quit()
+                sys.exit()
+            elif event.type == MOUSEBUTTONDOWN and event.button == 1:
+                if self.running:
+                    if self.step_flag == 0:
+                        res = Player.all_players[self.player_flag].move_to_mouse()
+                        if res:
+                            self.next_step()
+                    elif self.step_flag == 1:
+                        res = Player.all_players[self.player_flag].place_at_mouse()
+                        if res:
+                            self.next_step()
+
+    def get_players(self):
+        self.player_num = len(Player.all_players)
+        for player in Player.all_players:
+            self.record['moves'][player.name] = []
+
+    def test_end(self):
+        """
+        判断游戏是否结束
+        :return:
+        """
+        for player in Player.all_players:
+            isolated = Cell.is_isolated(player.pos, step=100)
+            if isolated and not player.isolated:
+                print(f'{player.name} Dies!')
+                player.isolated = True
+                all_die = True
+                for player_ in Player.all_players:
+                    if player_.isolated is False:
+                        all_die = False
+                if all_die:
+                    self.running = False
+                    self.score_calculator()
+                    return True
+
+    def score_calculator(self):
+        """
+        结算
+        :return:
+        """
+        print('=' * 20)
+        print('GAME\t\tOVER')
+        print('=' * 20)
+        print('NAME\t\tSCORE')
+        # 计算每个玩家的占地面积
+        for player in Player.all_players:
+            score = np.sum(Cell.bfs(player.pos, Cell.all_cells_2d, step=100))
+            self.record['result'][player.name] = score
+            print(player.name, score, sep='\t\t\t')
+        self.write_log()
+        print(self.record)
+
+    def write_log(self):
+        with open(f"./log/{self.record['time'].split(' ')[0]}.txt", 'a') as f:
+            f.write(str(self.record))
+            f.write('\n')
+
+    def robot_handler(self):
+        if 'Robot' in Player.all_players[self.player_flag].name:
+            if self.running:
+                act = Player.all_players[self.player_flag].max_territory_strategy()
+                Cell.all_cells_2d[Player.all_players[self.player_flag].pos].content = None
+                Player.all_players[self.player_flag].pos = act[0]
+                Cell.all_cells_2d[act[0]].content = Player.all_players[self.player_flag]
+                Wall(act[0], act[1], Player.all_players[self.player_flag].color)
+                self.test_end()
+                self.record['steps'] += 1
+                self.record['moves'][Player.all_players[self.player_flag].name].append([act[0], act[1]])
+                self.next_player()
+
+    def next_step(self):
+        if self.step_flag == 0:
+            self.step_flag += 1
+        elif self.player_flag < self.player_num - 1:
+            self.step_flag = 0
+            self.player_flag += 1
         else:
-            if initStep == 1:
-                textImage, textRect = text_objects_complex("红方  移动", myfont, True, red)
-            else:
-                textImage, textRect = text_objects_complex("红方  放置", myfont, True, red)
+            self.step_flag = 0
+            self.player_flag = 0
 
-        textRect.midtop = 400, 20
-        screen.blit(textImage, textRect)
-
-    else:
-        font = pygame.font.Font('./resources/ali-font.ttf', 80)
-        if initFlag == 1:
-            textImage, textRect = text_objects("蓝方  获胜", font)
-            textImage_2, textRect_2 = text_objects('%d : %d' % (w_cross, w_circle), font)
-        elif initFlag == 2:
-            textImage, textRect = text_objects("红方  获胜", font)
-            textImage_2, textRect_2 = text_objects('%d : %d' % (w_cross, w_circle), font)
+    def next_player(self):
+        if self.player_flag < self.player_num - 1:
+            self.player_flag += 1
         else:
-            textImage, textRect = text_objects("平局", font)
-            textImage_2, textRect_2 = text_objects('%d : %d' % (w_cross, w_circle), font)
+            self.player_flag = 0
+        self.step_flag = 0
 
-        textRect.midtop, textRect_2.midbottom = (400, 20), (400, 780)
+    def pos_2_grid(self, pos):
+        """
+        讲鼠标坐标转化为再网格中的位置
+        :param pos:
+        :return:
+        """
+        x = (pos[1] - self.border_size) // self.grid_size
+        y = (pos[0] - self.border_size) // self.grid_size
+        return x, y
 
-        screen.blit(textImage, textRect)
-        screen.blit(textImage_2, textRect_2)
+    def move_mouse_handler(self):
+        gd = self.pos_2_grid(pygame.mouse.get_pos())
+        if 0 <= gd[0] <= self.grid_num - 1 and 0 <= gd[1] <= self.grid_num - 1:
+            self.mouse_pos = gd
 
+    def draw_background(self, scr):
+        for i in range(self.window_size):
+            pygame.draw.line(
+                scr,
+                color=(round(173 - 29 * i / self.window_size, 0),
+                       round(124 + 13 * i / self.window_size, 0),
+                       round(170 + 1 * i / self.window_size, 0),),
+                start_pos=(0, i),
+                end_pos=(i, 0),
+                width=1,
+            )
 
-def initMat():
-    global b, chess_h, chess_v, chess_cross_bfs, cross_pos, circle_pos, initRole, initStep, initFlag, times, clock_
-    initRole = initStep = 1
-    initFlag = 0
-    b = matrix(chess_all, chess_all, 0)
-    chess_v = matrix(chess_all - 1, chess_all, 0)
-    chess_h = matrix(chess_all, chess_all - 1, 0)
-    cross_pos = [0, 0]
-    circle_pos = [chess_all - 1, chess_all - 1]
-    times = 0
-    clock_ = global_time
+        for i in range(self.window_size):
+            pygame.draw.line(
+                scr,
+                color=(round(144 - 29 * i / self.window_size, 0),
+                       round(137 + 13 * i / self.window_size, 0),
+                       round(171 + 1 * i / self.window_size, 0),),
+                start_pos=(self.window_size - 1, i),
+                end_pos=(i, self.window_size - 1),
+                width=1,
+            )
 
+    def init_screen(self):
+        """
+        初始化屏幕
+        """
+        self.window_size = self.grid_num * self.grid_size + self.border_size * 2
+        screen = pygame.display.set_mode((self.window_size, self.window_size))
+        ico = pygame.image.load('./resources/icon/xo.png')
+        pygame.display.set_icon(ico)
+        pygame.display.set_caption('围城')
+        return screen
 
-dots = 1
+    def main(self):
+        pygame.init()
+        screen = self.init_screen()
+        Cell.init_grid(self.grid_num, self.grid_num)
+        Player((0, 0), (130, 175, 214), 'Blue Player')
+        # Player((0, 6), (192, 141, 117), 'Brown Robot')
+        # Player((6, 0), (207, 155, 176), 'Pink Robot')
+        Player((6, 6), (80, 181, 142), 'Green Robot')
+        game.get_players()
 
-
-def pre_init():
-    global dots
-    screen.fill((220, 220, 220))
-
-    font = pygame.font.Font('./resources/ali-font.ttf', 80)
-    text_surface, text_rect = text_objects('围   城', font)
-    text_rect.center = (400, 100)
-    screen.blit(text_surface, text_rect)
-
-    font_1 = pygame.font.Font('./resources/ali-font.ttf', 20)
-    text_1_surface, text_1_rect = text_objects('作者：C191337  赵科为', font_1)
-    text_1_rect.center = (400, 170)
-    screen.blit(text_1_surface, text_1_rect)
-
-    pygame.draw.line(screen, (0, 0, 0), (50, 225), (750, 225))
-
-    font_2 = pygame.font.Font('./resources/ali-font.ttf', 60)
-    text_2_surface, text_2_rect = text_objects('游戏规则', font_2)
-    text_2_rect.center = (400, 300)
-    screen.blit(text_2_surface, text_2_rect)
-
-    font_3 = pygame.font.Font('./resources/ali-font.ttf', 20)
-    text_3_1_surface, text_3_1_rect = text_objects('7 X 7 棋盘，两名玩家位于对角', font_3)
-    text_3_1_rect.center = (400, 380)
-    screen.blit(text_3_1_surface, text_3_1_rect)
-
-    text_3_2_surface, text_3_2_rect = text_objects('两名玩家轮流进行0~3步移动（对应颜色的小点表示可到达的位置，点击格子来移动）', font_3)
-    text_3_2_rect.center = (400, 420)
-    screen.blit(text_3_2_surface, text_3_2_rect)
-
-    text_3_3_surface, text_3_3_rect = text_objects('移动之后，放置一堵也当前位置相邻的墙（必须放置，按上下左右键）', font_3)
-    text_3_3_rect.center = (400, 460)
-    screen.blit(text_3_3_surface, text_3_3_rect)
-
-    text_3_4_surface, text_3_4_rect = text_objects('当两人完全被墙分开至不同区域时，游戏结束', font_3)
-    text_3_4_rect.center = (400, 500)
-    screen.blit(text_3_4_surface, text_3_4_rect)
-
-    text_3_5_surface, text_3_5_rect = text_objects('按所占的区域大小判断胜负，格数多者胜。如果有一些格两人都不拥有，则不计入', font_3)
-    text_3_5_rect.center = (400, 540)
-    screen.blit(text_3_5_surface, text_3_5_rect)
-
-    pygame.draw.line(screen, (0, 0, 0), (50, 635), (750, 635))
-
-    font_2 = pygame.font.Font('./resources/ali-font.ttf', 40)
-    if 1 <= dots <= 50:
-        text_2_surface, text_2_rect = text_objects('按任意键开始游戏.  ', font_2)
-        dots += 1
-    elif 51 <= dots <= 100:
-        text_2_surface, text_2_rect = text_objects('按任意键开始游戏.. ', font_2)
-        dots += 1
-    elif 101 <= dots <= 150:
-        text_2_surface, text_2_rect = text_objects('按任意键开始游戏...', font_2)
-        dots += 1
-    else:
-        text_2_surface, text_2_rect = text_objects('按任意键开始游戏...', font_2)
-        dots = 1
-
-    text_2_rect.center = (400, 700)
-    screen.blit(text_2_surface, text_2_rect)
+        while True:
+            Player.refresh_available()
+            Player.refresh_territory()
+            self.robot_handler()
+            self.event_handler()
+            self.move_mouse_handler()
+            self.draw_background(screen)
+            Cell.display(screen)
+            Player.display(screen)
+            pygame.display.update()
 
 
-def pre_eventHearder():
-    global isStart
-    for event in pygame.event.get():
-        if event.type == QUIT:
-            pygame.quit()
-            sys.exit()
-        if event.type == KEYDOWN or event.type == MOUSEBUTTONDOWN:
-            isStart = True
-
-
-pygame.init()
-
-initMat()
-
-grid_size = chess_cell_size * chess_cell_num + chess_space * 2  # 棋盘的大小
-pygame.display.set_caption('围城 by 科为')
-screen = pygame.display.set_mode((grid_size, grid_size))  # 设置窗口长宽
-
-cross = pygame.image.load('./resources/cross.png')
-cross = pygame.transform.scale(cross, (chess_cell_size, chess_cell_size))
-circle = pygame.image.load('./resources/circle.png')
-circle = pygame.transform.scale(circle, (chess_cell_size, chess_cell_size))
-
-while True:
-    if not isStart:
-        pre_init()
-        pre_eventHearder()
-    else:
-        eventHerder()
-        game_clock()
-        chess_cross_bfs = bfs_include_circle(chess_h, chess_v, cross_pos, matrix(chess_all, chess_all, 0), 3)
-        chess_cross_bfs[circle_pos[0]][circle_pos[1]] = 0
-        chess_circle_bfs = bfs_include_cross(chess_h, chess_v, circle_pos, matrix(chess_all, chess_all, 0), 3)
-        chess_circle_bfs[cross_pos[0]][cross_pos[1]] = 0
-        init_chess(screen, chess_h, chess_v, chess_cross_bfs, chess_circle_bfs, chess_cell_num, chess_cell_size,
-                   chess_space, 1, 5)
-        time_judge()
-        isWin()
-        textRend()
-
-    pygame.display.update()
+if __name__ == '__main__':
+    game = Game(7, 100, 50, 20)
+    game.main()
