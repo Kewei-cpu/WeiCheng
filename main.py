@@ -272,7 +272,7 @@ class Player:
                 if game.player_flag == i:
                     game.next_player()
         for i, player in enumerate(cls.all_players):
-            if game.player_flag == i:
+            if game.player_flag == i and not player.isolated:
                 player.draw_outline(scr)
                 if game.step_flag == 0:
                     player.draw_available(scr)
@@ -506,14 +506,14 @@ class Player:
                         pos[0] == game.grid_num - 1 and loc == 3 or pos[1] == game.grid_num - 1 and loc == 2:
                     continue
 
-                # 已有墙的位置22222
+                # 已有墙的位置
                 if loc == 0 and Cell.all_cells_2d[pos].left or loc == 1 and Cell.all_cells_2d[pos].top or \
                         loc == 2 and Cell.all_cells_2d[pos].right or loc == 3 and Cell.all_cells_2d[pos].bottom:
                     continue
 
                 a = Wall(pos, loc)
                 # 移动放置后进行模拟
-                terr = Cell.bfs(pos, new_board, step=100, ignore_player=True, return_num=True)
+                terr = Cell.bfs(pos, new_board, step=100, return_num=True)
                 a.__del__()
                 new_board[pos].content = None
                 new_board[self.pos].content = self
@@ -525,24 +525,24 @@ class Player:
                     for player in self.all_players:
                         if player is not self and i > player.territory[pos_go] > 0 or i <= 0:
                             is_my_terr = False
-                        if i == player.territory[pos_go]:
+                        if i == player.territory[pos_go] and player is not self and player.territory[pos_go] > 0:
                             terr_num -= 0.5
                     if is_my_terr:
                         terr_num += 1
                 choices.append((pos, loc, terr_num))
 
-        # 选择领地最大的行动
-        max_terr = 0
-        for pos, loc, terr in choices:
-            if terr > max_terr:
-                max_terr = terr
-        max_terr_choices = []
-        for pos, loc, terr in choices:
-            if terr >= max_terr :
-                max_terr_choices.append((pos, loc))
-        print(max_terr, max_terr_choices)
-        if max_terr_choices:
-            return random.choice(max_terr_choices)
+
+        choices.sort(key=lambda x: x[2], reverse=True)
+        max_terr = choices[0][2]
+        max_terr_choices = [c for c in choices if c[2] >= max_terr - 1]
+        print(max_terr_choices)
+
+        max_terr_choices.sort(key=lambda x: (abs(x[0][0] - self.pos[0]) + abs(x[0][1] - self.pos[1])))
+        min_dis = abs(max_terr_choices[0][0][0] - self.pos[0]) + abs(max_terr_choices[0][0][1] - self.pos[1])
+        min_distance_choices = [c for c in max_terr_choices if abs(c[0][0] - self.pos[0]) + abs(c[0][1] - self.pos[1]) <= min_dis + 1]
+        print(min_distance_choices)
+
+        return random.choice(min_distance_choices)
 
 
 class Game:
@@ -639,14 +639,15 @@ class Game:
         if 'Robot' in Player.all_players[self.player_flag].name:
             if self.running:
                 act = Player.all_players[self.player_flag].max_territory_strategy()
-                Cell.all_cells_2d[Player.all_players[self.player_flag].pos].content = None
-                Player.all_players[self.player_flag].pos = act[0]
-                Cell.all_cells_2d[act[0]].content = Player.all_players[self.player_flag]
-                Wall(act[0], act[1], Player.all_players[self.player_flag].color)
-                self.test_end()
-                self.record['steps'] += 1
-                self.record['moves'][Player.all_players[self.player_flag].name].append([act[0], act[1]])
-                self.next_player()
+                if act:
+                    Cell.all_cells_2d[Player.all_players[self.player_flag].pos].content = None
+                    Player.all_players[self.player_flag].pos = act[0]
+                    Cell.all_cells_2d[act[0]].content = Player.all_players[self.player_flag]
+                    Wall(act[0], act[1], Player.all_players[self.player_flag].color)
+                    self.test_end()
+                    self.record['steps'] += 1
+                    self.record['moves'][Player.all_players[self.player_flag].name].append([act[0], act[1]])
+                    self.next_player()
 
     def next_step(self):
         if self.step_flag == 0:
