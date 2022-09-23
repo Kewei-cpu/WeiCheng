@@ -247,7 +247,7 @@ class Player:
     @classmethod
     def refresh_territory(cls):
         for player in cls.all_players:
-            player.territory = Cell.bfs(player.pos, Cell.all_cells_2d, step=100, ignore_player=True, return_num=True)
+            player.territory = Cell.bfs(player.pos, Cell.all_cells_2d, step=100, return_num=True)
 
     def get_available(self):
         self.available = []
@@ -284,8 +284,9 @@ class Player:
         for pos, i in np.ndenumerate(self.territory):
             terr = True
             for player in self.all_players:
-                if player is not self and player.territory[pos] <= i:
-                    terr = False
+                if player is not self:
+                    if 0 < player.territory[pos] <= i or i == 0 and pos != self.pos:
+                        terr = False
             if terr:
                 pygame.draw.rect(
                     surface=scr,
@@ -490,13 +491,6 @@ class Player:
         """
         choices = []
         for pos in self.available:  # 遍历每一个个能位置
-            if (abs(pos[0] - self.pos[0]) + abs(pos[1] - self.pos[1])) < 2:
-                # continue
-                pass
-            if int(Cell.all_cells_2d[pos].left is not None) + int(Cell.all_cells_2d[pos].top is not None) + \
-                    int(Cell.all_cells_2d[pos].right is not None) + int(Cell.all_cells_2d[pos].bottom is not None) > 1:
-                continue
-                # pass
             new_board = Cell.all_cells_2d.copy()
             new_board[self.pos].content = None
             new_board[pos].content = self
@@ -511,9 +505,17 @@ class Player:
                         loc == 2 and Cell.all_cells_2d[pos].right or loc == 3 and Cell.all_cells_2d[pos].bottom:
                     continue
 
+                wall_num = int(Cell.all_cells_2d[pos].left is not None) + int(Cell.all_cells_2d[pos].top is not None) + \
+                           int(Cell.all_cells_2d[pos].right is not None) + int(
+                    Cell.all_cells_2d[pos].bottom is not None)
+
+                step_num = abs(pos[0] - self.pos[0]) + abs(pos[1] - self.pos[1])
+
                 a = Wall(pos, loc)
                 # 移动放置后进行模拟
                 terr = Cell.bfs(pos, new_board, step=100, return_num=True)
+                for player in Player.all_players:
+                    player.territory = Cell.bfs(player.pos, new_board, step=100, return_num=True)
                 a.__del__()
                 new_board[pos].content = None
                 new_board[self.pos].content = self
@@ -521,28 +523,39 @@ class Player:
                 # 计算当前领地大小
                 terr_num = 0
                 for pos_go, i in np.ndenumerate(terr):
-                    is_my_terr = True
+                    my_terr = True
                     for player in self.all_players:
-                        if player is not self and i > player.territory[pos_go] > 0 or i <= 0:
-                            is_my_terr = False
-                        if i == player.territory[pos_go] and player is not self and player.territory[pos_go] > 0:
-                            terr_num -= 0.5
-                    if is_my_terr:
+                        if player is not self:
+                            if 0 < player.territory[pos_go] <= i or i == 0 and pos_go != self.pos:
+                                my_terr = False
+                            if i == player.territory[pos_go] and player.territory[pos_go] > 0:
+                                terr_num -= 0.5
+                    if my_terr:
                         terr_num += 1
-                choices.append((pos, loc, terr_num))
 
+                choices.append([pos, loc, terr_num, wall_num, step_num])
 
-        choices.sort(key=lambda x: x[2], reverse=True)
-        max_terr = choices[0][2]
-        max_terr_choices = [c for c in choices if c[2] >= max_terr - 1]
-        print(max_terr_choices)
+        m = -1
+        n = 0.5
+        choices.sort(key=lambda x: x[2] + m * x[3] + n * x[4], reverse=True)
+        for c in choices:
+            c.append(c[2] + m * c[3] + n * c[4])
 
-        max_terr_choices.sort(key=lambda x: (abs(x[0][0] - self.pos[0]) + abs(x[0][1] - self.pos[1])))
-        min_dis = abs(max_terr_choices[0][0][0] - self.pos[0]) + abs(max_terr_choices[0][0][1] - self.pos[1])
-        min_distance_choices = [c for c in max_terr_choices if abs(c[0][0] - self.pos[0]) + abs(c[0][1] - self.pos[1]) <= min_dis + 1]
-        print(min_distance_choices)
+        scores = np.array([c[5] for c in choices])
+        scores = np.exp(scores)
+        scores -= np.min(scores)
+        scores /= np.sum(scores) + 1e-8
 
-        return random.choice(min_distance_choices)
+        for i, c in enumerate(choices):
+            c.append(scores[i])
+        print(choices)
+        r = random.random()
+        for c in choices:
+            if r < c[6]:
+                print(c[:2])
+                return c[:2]
+            else:
+                r -= c[6]
 
 
 class Game:
